@@ -1,0 +1,404 @@
+<title>Knapsack at 300 km/h</title>
+<style>
+  :root{
+    --paper:#EDEFEF; --card:#F6F7F7; --ink:#15181B; --mut:#5F6670;
+    --rule:#CBD0D2; --hair:#DCE0E1;
+    --accent:#2B4A9B;      /* the annotation ink: marks the key idea */
+    --yes:#26705A;         /* taken / true */
+    --no:#9C4436;          /* not taken / false */
+    --band:rgba(43,74,155,.10);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --serif:Charter,"Bitstream Charter","Iowan Old Style",Georgia,serif;
+    --measure:36rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#111417; --card:#181C20; --ink:#DEE2E5; --mut:#8D959E;
+      --rule:#2A3036; --hair:#222830;
+      --accent:#89A6F2; --yes:#5CC49E; --no:#E28C7C;
+      --band:rgba(137,166,242,.13);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#EDEFEF; --card:#F6F7F7; --ink:#15181B; --mut:#5F6670;
+    --rule:#CBD0D2; --hair:#DCE0E1;
+    --accent:#2B4A9B; --yes:#26705A; --no:#9C4436;
+    --band:rgba(43,74,155,.10);
+  }
+  :root[data-theme="dark"]{
+    --paper:#111417; --card:#181C20; --ink:#DEE2E5; --mut:#8D959E;
+    --rule:#2A3036; --hair:#222830;
+    --accent:#89A6F2; --yes:#5CC49E; --no:#E28C7C;
+    --band:rgba(137,166,242,.13);
+  }
+
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.65;margin:0;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:64rem;margin:0 auto;padding:0 1.4rem 6rem;
+    display:flex;flex-direction:column;align-items:center;}
+  .col{width:100%;max-width:var(--measure);}
+  .col>*+*{margin-top:1.1em;}
+
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--mut);}
+
+  header{width:100%;max-width:var(--measure);padding:4.5rem 0 1.2rem;}
+  header>*+*{margin-top:.9rem;}
+  h1{font-family:var(--serif);font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.04;
+    margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance;}
+  .stand{font-size:1.15rem;color:var(--mut);margin:0;text-wrap:pretty;}
+  .who{border-top:1px solid var(--rule);padding-top:.9rem;font-family:var(--mono);
+    font-size:.76rem;color:var(--mut);}
+
+  h2{font-family:var(--serif);font-size:1.62rem;font-weight:700;line-height:1.15;
+    margin:3.2rem 0 0;letter-spacing:-.012em;text-wrap:balance;
+    display:flex;gap:.75rem;align-items:baseline;}
+  h2 .n{font-family:var(--mono);font-size:.78rem;font-weight:400;color:var(--accent);
+    letter-spacing:0;flex:none;padding-top:.35em;}
+  h3{font-size:1.02rem;font-weight:650;margin:1.9rem 0 0;}
+  p{margin:0;text-wrap:pretty;}
+  strong{font-weight:650;}
+  em{font-style:italic;}
+  a{color:var(--accent);}
+  code{font-family:var(--mono);font-size:.87em;background:var(--card);
+    border:1px solid var(--hair);border-radius:3px;padding:.08em .3em;}
+
+  .eq{background:var(--card);border:1px solid var(--hair);
+    border-left:2px solid var(--accent);padding:.95rem 1.1rem;
+    font-family:var(--mono);font-size:.82rem;line-height:1.75;white-space:pre;
+    overflow-x:auto;}
+  .eq .c{color:var(--mut);}
+
+  .note{border-left:2px solid var(--rule);padding-left:1.05rem;color:var(--mut);
+    font-size:.96rem;}
+  .note strong{color:var(--ink);}
+
+  .key{background:var(--band);border:1px solid var(--hair);border-radius:3px;
+    padding:1rem 1.15rem;font-size:1.02rem;}
+  .key .lab{display:block;font-family:var(--mono);font-size:.68rem;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    margin-bottom:.4rem;}
+
+  ul,ol{margin:0;padding-left:1.2rem;}
+  li+li{margin-top:.45em;}
+  li::marker{color:var(--mut);}
+
+  figure{width:100%;max-width:52rem;margin:2.4rem 0 0;background:var(--card);
+    border:1px solid var(--hair);border-radius:3px;}
+  figcaption{border-top:1px solid var(--hair);padding:.75rem 1.1rem .85rem;
+    font-size:.82rem;line-height:1.55;color:var(--mut);}
+  figcaption b{display:block;font-family:var(--mono);font-size:.68rem;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+    font-weight:400;margin-bottom:.25rem;}
+
+  /* interactive knapsack */
+  .kn{padding:1.2rem 1.1rem .4rem;}
+  .knhead{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;align-items:baseline;
+    margin-bottom:1rem;}
+  .knhead .big{font-family:var(--mono);font-size:1.45rem;
+    font-variant-numeric:tabular-nums;}
+  .knhead .l{display:block;font-family:var(--mono);font-size:.66rem;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--mut);}
+  input[type=range]{width:100%;accent-color:var(--accent);height:1.6rem;}
+  .seg{display:grid;grid-template-columns:11rem 1fr 4.2rem;gap:.7rem;
+    align-items:center;padding:.3rem 0;font-size:.86rem;}
+  .seg .nm{color:var(--mut);}
+  .seg.on .nm{color:var(--ink);font-weight:600;}
+  .track{position:relative;height:1.35rem;background:var(--paper);
+    border:1px solid var(--hair);border-radius:2px;overflow:hidden;}
+  .fillbar{height:100%;width:0;background:var(--rule);transition:width .18s ease;}
+  .seg.on .fillbar{background:var(--yes);}
+  .seg .g{font-family:var(--mono);font-variant-numeric:tabular-nums;
+    text-align:right;color:var(--mut);}
+  .seg.on .g{color:var(--yes);font-weight:600;}
+  .cut{font-family:var(--mono);font-size:.78rem;color:var(--accent);
+    padding:.5rem 0 .9rem;border-top:1px dashed var(--rule);margin-top:.5rem;}
+  @media (prefers-reduced-motion:reduce){.fillbar{transition:none;}}
+  @media (max-width:560px){.seg{grid-template-columns:7.5rem 1fr 3.4rem;}}
+
+  table{width:100%;border-collapse:collapse;font-size:.9rem;}
+  th,td{text-align:left;padding:.5rem .7rem .5rem 0;border-bottom:1px solid var(--hair);
+    vertical-align:top;}
+  th{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mut);font-weight:400;
+    border-bottom-color:var(--rule);}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tw{overflow-x:auto;} .tw table{min-width:24rem;}
+  .yes{color:var(--yes);font-weight:600;} .no{color:var(--no);}
+
+  hr{border:0;border-top:1px solid var(--rule);margin:3.2rem 0 0;width:100%;
+    max-width:var(--measure);}
+  footer{max-width:var(--measure);width:100%;color:var(--mut);font-size:.9rem;
+    margin-top:1.1rem;}
+  ::selection{background:var(--band);}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  @media (max-width:640px){body{font-size:16px;}header{padding-top:2.8rem;}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">F1 26 ERS Optimiser · How it works</div>
+  <h1>Knapsack at 300&nbsp;km/h</h1>
+  <p class="stand">You have a battery, a lap, and nowhere near enough energy to use everywhere. Deciding where to spend it is a problem you have already met in an algorithms class — it just has a racing car attached.</p>
+  <div class="who">written for a first-year CS student · assumes loops, arrays, derivatives · no control theory</div>
+</header>
+
+<div class="col">
+<p>The goal of this document is not that you follow it. It is that afterwards you can <em>explain it to someone else</em>. There is a script for that at the end. Everything here is checkable by hand, and the one worked example runs on numbers small enough to verify with a pen.</p>
+</div>
+
+<div class="col">
+<h2><span class="n">01</span><span>The problem, concretely</span></h2>
+<p>An F1 car has an electric motor (the MGU-K) and a battery. You recover energy under braking and spend it accelerating. The battery is small — 4 megajoules, which is about eleven seconds of full power — and a lap takes ninety.</p>
+<p>So you cannot deploy everywhere. You must choose. And the choice matters, because <strong>a joule is worth different amounts at different points on the track.</strong></p>
+<p>Why? At 80&nbsp;km/h out of a slow corner, extra power produces a big change in speed. At 330&nbsp;km/h down a straight you are fighting air resistance that grows with the square of speed, so the same joule barely moves the needle. Same energy, wildly different payoff.</p>
+<div class="key"><span class="lab">The whole problem in one line</span>
+You have a fixed budget of energy and a list of places to spend it, each with a different payoff. Maximise total payoff.</div>
+<p>If that sounds familiar, it should.</p>
+</div>
+
+<div class="col">
+<h2><span class="n">02</span><span>It's a knapsack problem</span></h2>
+<p>The knapsack problem: you have a bag that holds <code>W</code> kilograms, and items each with a weight and a value. Maximise the value you carry.</p>
+<p>Map it over:</p>
+<div class="tw">
+<table>
+  <thead><tr><th>Knapsack</th><th>Our problem</th></tr></thead>
+  <tbody>
+    <tr><td>Bag capacity</td><td>Battery charge available this lap</td></tr>
+    <tr><td>An item's weight</td><td>Joules spent at one point on track</td></tr>
+    <tr><td>An item's value</td><td>Seconds of lap time that saves you</td></tr>
+    <tr><td>Which items to take</td><td>Where on the lap to deploy</td></tr>
+  </tbody>
+</table>
+</div>
+<p>One useful difference. In the classic version items are indivisible — you take the whole thing or none of it. Here energy is <em>continuous</em>: you can put half a megajoule into a corner exit. That makes it the <strong>fractional knapsack</strong>, and the fractional version has a famously simple optimal solution.</p>
+
+<h3>The greedy rule</h3>
+<p>For fractional knapsack, sort items by <strong>value per unit weight</strong> and take them best-first until the bag is full. That is provably optimal — no dynamic programming needed.</p>
+<p>Value per unit weight, in our units, is <strong>seconds saved per joule spent</strong>. Call it <code>g</code>. So:</p>
+<div class="eq">sort every point on track by g  (seconds saved per joule)
+spend the battery on the best ones first, until it runs out</div>
+<p>That is the entire idea. Everything that follows is either making <code>g</code> honest, or turning the greedy rule into something you can compute quickly.</p>
+</div>
+
+<div class="col">
+<h2><span class="n">03</span><span>The price trick</span></h2>
+<p>Greedy works, but sorting-and-filling is awkward when the "items" are 600 track segments whose payoffs depend on how fast you are going, which depends on what you spent earlier. So we use a change of view that turns out to be the key to everything.</p>
+<p>Instead of enforcing a budget, <strong>charge a price for energy.</strong></p>
+<p>Call the price <strong>λ</strong> (lambda), measured in seconds per joule. Now walk the lap and apply one local rule at every point:</p>
+<div class="eq">spend here  if  g > λ      <span class="c">the joule buys more than it costs</span>
+skip   here  if  g &lt; λ      <span class="c">it is worth more somewhere else</span></div>
+<p>No sorting, no bookkeeping, no global view — just a comparison at each point. But there is a catch: you do not know λ. Pick it too low and you spend more energy than you have. Too high and you finish with battery left over.</p>
+<p>So you <strong>tune λ until the energy spent exactly matches the energy available.</strong> Spending falls as the price rises, so a binary search finds it in about twenty tries.</p>
+<div class="note"><strong>Why this is the same thing.</strong> The greedy rule takes items above a cut-off in value density. λ <em>is</em> that cut-off. Tuning λ to fit the budget is the same as filling the bag best-first — you have just described the boundary by its price instead of by counting.</div>
+</div>
+
+<figure>
+  <div class="kn">
+    <div class="knhead">
+      <div><span class="l">Battery</span><span class="big" id="kb">3.0 MJ</span></div>
+      <div><span class="l">Price λ</span><span class="big" id="kl" style="color:var(--accent)">0.7</span></div>
+      <div><span class="l">Time saved</span><span class="big" id="kt">2.40 s</span></div>
+    </div>
+    <label for="krange" class="l" style="font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Drag to change how much battery you have</label>
+    <input type="range" id="krange" min="0" max="6" step="0.5" value="3"
+           aria-label="Battery available, megajoules">
+    <div id="ksegs"></div>
+    <div class="cut" id="kcut"></div>
+  </div>
+  <figcaption><b>Try it — this is the lesson</b>
+  Six places on a lap, each with its own payoff <code>g</code>. Green means the solver spends there. Drag the battery: watch which places win, and watch λ fall as energy becomes less scarce. Notice the chosen places are <em>not</em> next to each other — the rule picks by value, not by position.</figcaption>
+</figure>
+
+<div class="col">
+<h3>Check it by hand</h3>
+<p>With 3&nbsp;MJ and a cap of 1&nbsp;MJ per place, greedy takes the three best: 0.9, 0.8, 0.7 — total <strong>2.40&nbsp;s</strong>. The last joule spent went into the 0.7 place, so <strong>λ = 0.7</strong>. And the rule "spend where <code>g ≥ 0.7</code>" selects exactly those three. The two views agree, as they must.</p>
+<div class="tw">
+<table>
+  <thead><tr><th>Battery</th><th>λ</th><th>Saves</th><th>Places used</th></tr></thead>
+  <tbody>
+    <tr><td class="n">2 MJ</td><td class="n">0.8</td><td class="n">1.70 s</td><td>2</td></tr>
+    <tr><td class="n">3 MJ</td><td class="n">0.7</td><td class="n">2.40 s</td><td>3</td></tr>
+    <tr><td class="n">4 MJ</td><td class="n">0.4</td><td class="n">2.80 s</td><td>4</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="key"><span class="lab">What λ actually means</span>
+λ is the value of the <em>last</em> joule you spend — the worst one still worth using. More battery means you dip into worse options, so λ falls. It is a price in the economic sense: the shadow price of energy.</div>
+<p>This matters later. Because λ is the value of the <em>marginal</em> joule, you must never price a large block of energy at λ — energy has diminishing returns, and doing so overstates the loss. Getting that wrong once made the tool report 2.02&nbsp;s of waste on a lap whose entire measured loss was 0.66&nbsp;s.</p>
+</div>
+
+<div class="col">
+<h2><span class="n">04</span><span>So what is <code>g</code>, really?</span></h2>
+<p>Everything rests on <code>g</code>: the seconds saved per joule spent at a point. It sounds like it should be easy. It is the part I got wrong.</p>
+<p>The obvious approach: spend a bit more energy in this 10-metre stretch, see how much quicker you cover those 10 metres, divide. Local, simple, and <strong>badly wrong</strong>.</p>
+<p>Because a joule spent on a corner exit does not only shorten that 10 metres. You leave the corner faster, so you are faster for the <em>next</em> stretch, and the one after, all the way down the following straight until the next braking point washes the difference away. Almost all of the benefit is in that tail.</p>
+<div class="key"><span class="lab">Measured on a real corner exit</span>
+Time saved inside that 10 m: <strong>0.037 s/MJ</strong>.<br>
+Time saved over the whole lap: <strong>0.694 s/MJ</strong>.<br>
+The tail is worth <strong>19×</strong> the part you can see locally.</div>
+<p>Under-counting by nineteen times made <code>g</code> far smaller than λ everywhere, so the rule "spend where <code>g > λ</code>" said <em>spend nowhere</em>. The whole diagnosis layer silently broke: every mistake got labelled "wasted deployment", because nothing ever looked worth doing.</p>
+
+<h3>Counting the tail: the chain rule, backwards</h3>
+<p>You could measure the tail by brute force: for each of 600 points, nudge the energy there and re-simulate the whole lap. That is 600 simulations of 600 steps — 360,000 steps, and you would repeat it every lap.</p>
+<p>Instead, use the chain rule in reverse. Define:</p>
+<div class="eq">φ(i)  =  how much the rest of the lap speeds up
+         if the car is going 1 m/s faster at point i</div>
+<p>You can compute every <code>φ</code> in <em>one backward pass</em>, because <code>φ</code> at a point depends only on <code>φ</code> at the next point:</p>
+<div class="eq">φ(i)  =  (time saved right here)  +  (φ(i+1) × how much speed carries forward)</div>
+<p>Start at the end of the lap where <code>φ = 0</code>, walk backwards, and you have the full downstream value at every point in <code>O(n)</code> instead of <code>O(n²)</code>.</p>
+<div class="note"><strong>If you have heard of backpropagation, this is the same trick.</strong> Neural networks compute the effect of every weight on the final loss with one backward pass instead of perturbing each weight separately. Same chain rule, same reversal, same reason. Here it is called the <em>adjoint method</em>; it predates backprop by decades.</div>
+<p>One term in that recursion does real work. If the car is about to brake, its speed at the next point is set by the brakes, not by how fast it arrived — so "how much speed carries forward" is <strong>zero</strong>, and the chain stops dead.</p>
+<p>That is why deploying into a braking zone is worthless, and why the tool's "lift and coast" advice exists. Nobody wrote a rule saying so. It falls out of one term being zero.</p>
+<div class="note"><strong>Always check a clever method against a dumb one.</strong> I ran the brute-force version — nudge one point, re-simulate the entire lap — and compared. They agree to four decimal places (0.7056 vs 0.7056). Do this every time you replace something obvious with something fast.</div>
+</div>
+
+<div class="col">
+<h2><span class="n">05</span><span>Where the numbers come from</span></h2>
+<p>To compute <code>g</code> you need to predict how the car responds to power. That needs a model of the car — and rather than look up specifications, the tool <strong>measures them from your own driving</strong>.</p>
+<p>The physics, per kilogram, is one line:</p>
+<div class="eq">change in kinetic energy  =  power in  −  drag  −  friction
+
+d(v²/2)/ds  =  a·P/v  −  b·v²  −  c</div>
+<p>You know <code>v</code> (speed) and <code>P</code> (power) — both are in the telemetry. You do not know <code>a</code>, <code>b</code>, <code>c</code>. But the equation is <em>linear</em> in those three unknowns, so this is a line of best fit with three unknowns instead of two. Least squares: exactly what you would do to fit <code>y = mx + c</code>, one step up.</p>
+
+<h3>Three things that went wrong, and what they teach</h3>
+<p><strong>The data was too coarse.</strong> The game reports speed as a whole number of km/h. Differencing that over 10 metres gives a noise level bigger than the signal — the fit came back with <em>negative drag</em>. The fix is to stop differencing and start integrating: measure the change over 100 metres instead of 10. The same equation holds over a longer baseline, and the rounding averages out. R² went from 0.30 to 0.99.</p>
+<div class="note"><strong>Lesson:</strong> when a derivative is noisy, integrate. Differencing amplifies noise; averaging suppresses it.</div>
+<p><strong>One lap was not enough.</strong> Fitted on a single lap, the model reproduced <em>that lap</em> perfectly and mispredicted every other one. Power and drag were nearly indistinguishable, because on one lap they always appeared in the same combination. The fix is to pool laps that deployed <em>differently</em>. In control theory this is called <strong>persistent excitation</strong>: to identify a system you must poke it in varied ways. Error went from 5× to 1.4%.</p>
+<div class="note"><strong>Lesson:</strong> a model that fits its training data perfectly and generalises badly is the oldest failure in the subject. Varied data is the cure, not a cleverer fit.</div>
+<p><strong>My regulariser was drowning the data.</strong> Each lap's fit is nudged toward the previous lap's answer, so it tracks a car whose fuel is burning off. The strength of that nudge was accidentally scaled by the number of data points — so the more evidence arrived, the more the prior dominated. It outweighed the data about seven to one, and the fit barely moved off its starting guess. Removing one spurious factor took parameter recovery from 2.8% error to <strong>0.18%</strong>.</p>
+<div class="note"><strong>Lesson:</strong> it had looked fine for weeks, because the default starting guess happened to be near the right answer. A test that passes for the wrong reason is worse than no test.</div>
+</div>
+
+<div class="col">
+<h2><span class="n">06</span><span>Putting it together</span></h2>
+<p>The full loop, once per lap:</p>
+<ol>
+  <li><strong>Fit the car</strong> from telemetry — efficiency, drag, and how much power the motor can actually deliver at each speed.</li>
+  <li><strong>Compute <code>g</code></strong> at every point with one backward pass.</li>
+  <li><strong>Binary-search λ</strong> until the planned spending matches the energy available.</li>
+  <li><strong>Compare</strong> what you did against that plan, and price each difference in seconds.</li>
+  <li><strong>Say the biggest one out loud</strong>, tied to a place you can act on.</li>
+</ol>
+<p>Two details worth knowing, because both are places where the simple story breaks.</p>
+<p><strong>The battery can hit empty mid-lap.</strong> Then a single price no longer describes the lap: energy before that moment and energy after it are not interchangeable, because you cannot move joules forward through an empty battery. The fix is to split the lap at that point and solve each part with its own λ. The theory that says this is exactly right is Pontryagin's maximum principle — but you can see it without the theory: two separate budgets need two separate prices.</p>
+<p><strong>The lap has to repeat.</strong> A quick lap bought by emptying the battery is a loan. The next lap starts short and gives the time straight back. So the default plan is constrained to finish with as much charge as it started — energy-neutral, and therefore repeatable. On the final lap that constraint is dropped, because there is no next lap to pay back.</p>
+<div class="key"><span class="lab">This is the bit no online guide covers</span>
+Every ERS guide you can find is about a qualifying lap: start full, finish empty. That is the easy case. A race is a repeated game, and the constraint that makes it hard is that today's lap must not steal from tomorrow's.</div>
+</div>
+
+<div class="col">
+<h2><span class="n">07</span><span>Explain it in sixty seconds</span></h2>
+<p>Here is the script. If you can say this and answer the follow-up, you understand it.</p>
+<div class="key" style="font-size:1.04rem;line-height:1.6">
+"You've got a battery that's nowhere near big enough for a whole lap, so you have to choose where to spend it. It's a knapsack problem: each bit of track has a payoff in seconds per joule, and you want the best ones.
+<br><br>
+The trick is you don't enforce the budget directly — you put a <em>price</em> on energy, then spend anywhere the payoff beats the price, and tune the price until you exactly use what you have. That price is the interesting number: it's what a joule is worth on this lap.
+<br><br>
+The hard part is working out the payoff, because energy spent on a corner exit keeps paying all the way down the next straight. You get that with one backward pass — same chain rule as backprop. And it's why deploying into a braking zone is worthless: the car's about to brake, so the speed doesn't carry, and the chain stops."
+</div>
+<h3>Follow-ups you should be able to handle</h3>
+<ul>
+  <li><em>"Why not just try every combination?"</em> — 600 points with continuous energy is infinite combinations. The price turns one global choice into 600 independent local ones.</li>
+  <li><em>"Why is a joule worth more at low speed?"</em> — Drag grows with the square of speed. At 330 km/h nearly all your power fights the air; at 80 km/h nearly all of it accelerates you.</li>
+  <li><em>"What is λ, in one sentence?"</em> — What the last joule you spent was worth, in seconds. It falls as you get more energy.</li>
+  <li><em>"How do you know the model is right?"</em> — It predicts the lap time of laps it wasn't fitted on, to within about half a percent.</li>
+</ul>
+</div>
+
+<div class="col">
+<h2><span class="n">08</span><span>Words you'll need</span></h2>
+<div class="tw">
+<table>
+  <thead><tr><th>Term</th><th>Plain meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="n">λ (lambda)</td><td>The price of energy on this lap, in seconds per joule</td></tr>
+    <tr><td class="n">g(s)</td><td>What a joule buys at point <code>s</code>, in seconds per joule</td></tr>
+    <tr><td class="n">Adjoint</td><td>Chain rule run backwards to get all sensitivities in one pass</td></tr>
+    <tr><td class="n">Shadow price</td><td>What one more unit of a scarce thing would be worth to you</td></tr>
+    <tr><td class="n">System identification</td><td>Fitting a physical model's unknown constants from measurements</td></tr>
+    <tr><td class="n">Persistent excitation</td><td>Varied enough input to tell two effects apart</td></tr>
+    <tr><td class="n">Fractional knapsack</td><td>Knapsack where items can be split; greedy by value density is optimal</td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="col">
+<h2><span class="n">09</span><span>Try these yourself</span></h2>
+<ol>
+  <li>In the slider above, set the battery to 6 MJ. Why does λ go to the smallest value on the list, and what would λ be with 10 MJ?</li>
+  <li>Write fractional knapsack in twenty lines. Then rewrite it as "pick a price, take everything above it, binary-search the price". Confirm they agree.</li>
+  <li>The braking term makes "speed carried forward" zero. What would <code>g</code> look like on a track that was one continuous straight with no corners at all?</li>
+  <li>If you had <em>unlimited</em> battery, what would λ be, and what would the advice become?</li>
+</ol>
+<p class="note" style="margin-top:1.4rem">Answers, briefly: (1) with more energy than any place can absorb, the cheapest useful place sets the price — beyond that λ hits zero, because energy stops being scarce. (3) <code>g</code> would decay smoothly with speed and never drop to zero, since nothing brakes the gains away. (4) λ = 0, and the advice becomes "deploy everywhere you can" — which is qualifying, not racing.</p>
+</div>
+
+<hr>
+<footer>
+<p>The companion document, <em>The shadow price of a joule</em>, covers the same ground at the level of the actual implementation — Pontryagin, the co-state split, and the measured validation. Read this one first.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  // Six places on one lap, in track order. g = seconds saved per megajoule.
+  var SEGS = [
+    {n:"Turn 1 exit",         g:0.9},
+    {n:"back straight, start",g:0.4},
+    {n:"back straight, end",  g:0.1},
+    {n:"Turn 2 exit",         g:0.7},
+    {n:"Turn 3 exit",         g:0.8},
+    {n:"main straight",       g:0.2}
+  ];
+  var CAP = 1.0;                       // MJ any one place can absorb
+  var host = document.getElementById("ksegs");
+  var rows = SEGS.map(function(s){
+    var d = document.createElement("div");
+    d.className = "seg";
+    d.innerHTML = '<span class="nm"></span>'
+                + '<span class="track"><span class="fillbar"></span></span>'
+                + '<span class="g"></span>';
+    d.querySelector(".nm").textContent = s.n;
+    d.querySelector(".g").textContent = s.g.toFixed(1);
+    host.appendChild(d);
+    return d;
+  });
+
+  function render(budget){
+    // Fractional knapsack: fill best-first by value density.
+    var order = SEGS.map(function(s,i){return {i:i,g:s.g};})
+                    .sort(function(a,b){return b.g - a.g;});
+    var left = budget, amt = SEGS.map(function(){return 0;}), lam = 0, saved = 0;
+    order.forEach(function(o){
+      var take = Math.min(CAP, left);
+      if (take <= 0) return;
+      amt[o.i] = take; left -= take; saved += o.g * take;
+      lam = o.g;                       // value density of the last joule spent
+    });
+    rows.forEach(function(row,i){
+      row.classList.toggle("on", amt[i] > 0);
+      row.querySelector(".fillbar").style.width = (amt[i]/CAP*100).toFixed(1) + "%";
+    });
+    document.getElementById("kb").textContent = budget.toFixed(1) + " MJ";
+    document.getElementById("kl").textContent = budget > 0 ? lam.toFixed(1) : "—";
+    document.getElementById("kt").textContent = saved.toFixed(2) + " s";
+    var cut = document.getElementById("kcut");
+    cut.textContent = budget <= 0
+      ? "no battery: nothing to spend"
+      : (left > 0.001
+          ? "more battery than there are places to use it — energy is not scarce, so λ → 0"
+          : "rule: spend wherever g ≥ " + lam.toFixed(1) + "  →  picks exactly the green rows");
+  }
+
+  var r = document.getElementById("krange");
+  r.addEventListener("input", function(){ render(parseFloat(r.value)); });
+  render(parseFloat(r.value));
+})();
+</script>

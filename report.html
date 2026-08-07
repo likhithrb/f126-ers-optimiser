@@ -1,0 +1,391 @@
+<title>The Shadow Price of a Joule</title>
+<style>
+  :root {
+    --paper:#EBEBE7; --card:#F4F4F1; --text:#171B21; --muted:#66655F;
+    --rule:#CFCFC8; --hair:#DEDED8;
+    --accent:#8F5C0C; --optimal:#1C625E; --driver:#9C3450;
+    --band:rgba(143,92,12,.13); --corner:rgba(23,27,33,.045);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --measure:34rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0F1216; --card:#161A20; --text:#DBDEE3; --muted:#8B9098;
+      --rule:#2B3138; --hair:#232930;
+      --accent:#DFA84C; --optimal:#54C3B9; --driver:#E37E94;
+      --band:rgba(223,168,76,.16); --corner:rgba(255,255,255,.04);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#EBEBE7; --card:#F4F4F1; --text:#171B21; --muted:#66655F;
+    --rule:#CFCFC8; --hair:#DEDED8;
+    --accent:#8F5C0C; --optimal:#1C625E; --driver:#9C3450;
+    --band:rgba(143,92,12,.13); --corner:rgba(23,27,33,.045);
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1216; --card:#161A20; --text:#DBDEE3; --muted:#8B9098;
+    --rule:#2B3138; --hair:#232930;
+    --accent:#DFA84C; --optimal:#54C3B9; --driver:#E37E94;
+    --band:rgba(223,168,76,.16); --corner:rgba(255,255,255,.04);
+  }
+
+  body{background:var(--paper);color:var(--text);font-family:var(--serif);
+    font-size:17px;line-height:1.62;margin:0;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  .wrap{max-width:62rem;margin:0 auto;padding:0 1.5rem 6rem;
+    display:flex;flex-direction:column;align-items:center;gap:0;}
+  .col{width:100%;max-width:var(--measure);}
+  .col>*+*{margin-top:1.05em;}
+
+  .eyebrow{font-family:var(--sans);font-size:.66rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted);}
+
+  header.mast{width:100%;max-width:var(--measure);padding:5rem 0 1.5rem;}
+  header.mast>*+*{margin-top:1rem;}
+  h1{font-size:clamp(2.1rem,5.5vw,3.1rem);line-height:1.06;margin:0;
+    font-weight:400;letter-spacing:-.018em;text-wrap:balance;}
+  h1 em{font-style:italic;color:var(--accent);}
+  .standfirst{font-size:1.18rem;line-height:1.55;color:var(--muted);
+    text-wrap:pretty;margin:0;}
+  .mastmeta{display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;padding-top:.9rem;
+    border-top:1px solid var(--rule);font-family:var(--mono);font-size:.75rem;
+    color:var(--muted);}
+
+  h2{font-size:1.5rem;font-weight:400;line-height:1.2;letter-spacing:-.012em;
+    margin:3.4rem 0 0;text-wrap:balance;display:flex;gap:.7rem;align-items:baseline;}
+  h2 .num{font-family:var(--mono);font-size:.8rem;color:var(--accent);
+    letter-spacing:0;flex:none;}
+  h3{font-size:1.06rem;font-weight:600;margin:2rem 0 0;letter-spacing:-.005em;}
+  p{margin:0;text-wrap:pretty;}
+  a{color:var(--accent);text-underline-offset:.18em;}
+  strong{font-weight:600;}
+  code{font-family:var(--mono);font-size:.86em;
+    background:var(--card);padding:.1em .32em;border-radius:3px;
+    border:1px solid var(--hair);}
+
+  .eq{background:var(--card);border:1px solid var(--hair);border-left:2px solid var(--accent);
+    padding:1rem 1.15rem;font-family:var(--mono);font-size:.83rem;line-height:1.75;
+    overflow-x:auto;white-space:pre;color:var(--text);}
+  .eq .c{color:var(--muted);}
+
+  .note{border-left:2px solid var(--rule);padding-left:1.1rem;color:var(--muted);
+    font-size:.95rem;}
+  .note strong{color:var(--text);}
+
+  ul,ol{margin:0;padding-left:1.15rem;}
+  li+li{margin-top:.5em;}
+  li::marker{color:var(--muted);}
+
+  figure{width:100%;max-width:60rem;margin:2.6rem 0 0;
+    background:var(--card);border:1px solid var(--hair);border-radius:2px;}
+  .figbody{overflow-x:auto;padding:1rem .5rem .25rem;}
+  figure svg{display:block;width:100%;min-width:600px;height:auto;}
+  figcaption{border-top:1px solid var(--hair);padding:.7rem 1rem .8rem;
+    font-family:var(--sans);font-size:.8rem;line-height:1.5;color:var(--muted);}
+  figcaption b{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.25rem;
+    font-weight:400;}
+  .key{display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;margin-top:.5rem;
+    font-family:var(--mono);font-size:.72rem;}
+  .key i{font-style:normal;display:inline-flex;align-items:center;gap:.35rem;}
+  .key i::before{content:"";width:14px;height:2px;background:currentColor;}
+  .k-opt{color:var(--optimal);} .k-drv{color:var(--driver);} .k-lam{color:var(--accent);}
+
+  /* figure internals */
+  .ax,.tick{stroke:var(--rule);stroke-width:1;}
+  .grid{stroke:var(--hair);stroke-width:1;}
+  .tl,.al,.pl,.lamlab{font-family:var(--mono);fill:var(--muted);}
+  .tl{font-size:9px;} .al{font-size:8.5px;letter-spacing:.05em;}
+  .pl{font-size:9.5px;fill:var(--muted);letter-spacing:.04em;}
+  .lamlab{font-size:9.5px;fill:var(--accent);}
+  .ln{fill:none;stroke-width:1.7;stroke-linejoin:round;}
+  .ln.opt{stroke:var(--optimal);} .ln.drv{stroke:var(--driver);stroke-dasharray:4 3;}
+  .ln.gain{stroke:var(--accent);stroke-width:1.6;}
+  .ar{stroke-width:1.2;}
+  .ar.opt{fill:color-mix(in srgb,var(--optimal) 26%,transparent);stroke:var(--optimal);}
+  .ar.drv{fill:color-mix(in srgb,var(--driver) 20%,transparent);stroke:var(--driver);}
+  .band{fill:var(--band);stroke:none;}
+  .mask{fill:var(--card);}
+  .lam{stroke:var(--accent);stroke-width:1.2;stroke-dasharray:5 3;}
+  .budget{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;}
+  .dot{fill:var(--accent);}
+  .corner{fill:var(--corner);}
+
+  table{width:100%;border-collapse:collapse;font-size:.9rem;}
+  th,td{text-align:left;padding:.5rem .7rem .5rem 0;border-bottom:1px solid var(--hair);
+    vertical-align:top;}
+  th{font-family:var(--sans);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:400;border-bottom-color:var(--rule);}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.sym{font-family:var(--mono);color:var(--accent);white-space:nowrap;}
+  .tablewrap{overflow-x:auto;}
+  .tablewrap table{min-width:26rem;}
+
+  hr{border:0;border-top:1px solid var(--rule);margin:3.5rem 0 0;width:100%;
+    max-width:var(--measure);}
+  footer{max-width:var(--measure);width:100%;color:var(--muted);font-size:.9rem;
+    margin-top:1.2rem;}
+  ::selection{background:var(--band);}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth;}}
+  @media (max-width:640px){
+    body{font-size:16px;} header.mast{padding-top:3rem;}
+    .figbody{padding:.75rem .25rem .25rem;}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">F1 26 ERS Optimiser · Method</div>
+  <h1>The shadow price of a <em>joule</em></h1>
+  <p class="standfirst">How a lap of telemetry becomes a number in seconds — identifying the car from its own data, solving the deployment problem with Pontryagin's maximum principle, and pricing every mistake against one quantity: what a joule is worth, right here, right now.</p>
+  <div class="mastmeta">
+    <span>numpy only</span><span>~1000 lines</span><span>60 Hz UDP</span><span>~120 ms per solve</span>
+  </div>
+</header>
+
+<div class="col">
+<p>This is the reasoning behind the tool, written to be read start to finish. Every figure is drawn from real solver output on the test circuit — nothing here is illustrative.</p>
+</div>
+
+<div class="col">
+<h2><span class="num">00</span><span>Why a race is not a qualifying lap</span></h2>
+<p>Every ERS guide you can find online solves the same problem: one lap, start full, finish empty, deploy on the exits. It is the easy case, and it is not the case you are in during a race.</p>
+<p>Three things change, and all three are about <em>time coupling</em> — what you do now constrains what you can do later:</p>
+<ul>
+  <li><strong>The lap has to repeat.</strong> Energy spent and not recovered is energy the next lap starts without. A quick lap bought with the battery is a loan, and it compounds across a stint.</li>
+  <li><strong>Harvest is not a constant.</strong> With clear air ahead you brake later and recover less. The budget itself moves lap to lap, so the right answer moves with it.</li>
+  <li><strong>Running dry has a location.</strong> Spending sector 1's energy leaves sector 3 empty, and how much that costs depends entirely on what sector 3 looks like.</li>
+</ul>
+<p>None of this is answerable by a rule of thumb, because the answer depends on the circuit, the car, and the state of charge you happen to be in. It has to be recomputed. The rest of this document is how.</p>
+</div>
+
+<div class="col">
+<h2><span class="num">01</span><span>Learning the car from its own telemetry</span></h2>
+<p>Before anything can be optimised, the car has to be modelled. Working in distance rather than time — the natural coordinate for a circuit — and per unit mass, longitudinal motion is:</p>
+</div>
+
+<div class="col">
+<div class="eq">d(v²/2)/ds  =  a·P(s)/v  −  drag(s)·v²  −  c
+
+drag(s)     =  b + db·aero(s)
+
+<span class="c">a       powertrain efficiency ÷ mass
+b       drag ÷ mass, high-downforce mode
+db      drag change in straight-line mode (negative)
+c       rolling and driveline losses ÷ mass
+aero(s) 0 = corner mode, 1 = straight-line mode</span></div>
+</div>
+
+<div class="col">
+<p>The pleasant surprise in the 2026 telemetry spec is that <code>EnginePowerICE</code> and <code>EnginePowerMGUK</code> are reported <strong>in watts</strong>. Deployment never has to be inferred from throttle position or state-of-charge deltas — it is measured directly, which is what makes every later number honest.</p>
+<p>The equation is linear in <code>(a, b, db, c)</code>, so this is a least-squares fit. Three things go wrong if you write that fit naively, and all three took real debugging.</p>
+
+<h3>The game reports speed as a whole number of km/h</h3>
+<p>One km/h is 0.278 m/s. Differencing that across a 10 m bin gives an acceleration estimate whose quantisation noise is <em>larger than the signal</em> — the fitted values came back with negative drag and a five-fold error in efficiency.</p>
+<p>The fix is to stop differencing and start integrating. The same equation integrated over a longer baseline is still exactly linear in the same unknowns:</p>
+<div class="eq">(e[i+W] − e[i]) / (W·ds)  =  a·⟨P/v⟩ − b·⟨v²⟩ − db·⟨v²·aero⟩ − c        <span class="c">e = v²/2</span></div>
+<p>With <code>W</code> chosen for a ~100 m baseline the quantisation averages away and the estimate stays unbiased. R² went from 0.30 to 0.99.</p>
+
+<h3>One lap cannot identify the parameters</h3>
+<p>A single lap has a single deployment pattern, which leaves power and drag nearly collinear. The fit then reproduces <em>that lap</em> beautifully and mispredicts every other one — useless here, because the entire job is predicting laps the driver has not driven yet.</p>
+<p>The fix is classical: <strong>persistent excitation</strong>. Regression rows are pooled across laps, and different laps deploy differently, which is exactly the variation the fit needs to separate the two effects. Recovery against known truth went from a 5× error to 1.4%.</p>
+
+<h3>The car changes underneath you</h3>
+<p>Fuel burns off, tyres go away. The fit is ridge-regularised toward the <em>previous</em> estimate, in normalised column units so the penalty doesn't land entirely on whichever parameter happens to have the largest column. That makes it a recursive estimator: it tracks a changing car without lurching on one noisy lap.</p>
+</div>
+
+<figure>
+  <div class="figbody"><svg viewBox="0 0 880 226" role="img" aria-label="Learned MGU-K power limit against speed"><line class="grid" x1="64" y1="170.0" x2="764" y2="170.0"/><text class="tl" x="58" y="173.5" text-anchor="end">0</text><line class="grid" x1="64" y1="100.92" x2="764" y2="100.92"/><text class="tl" x="58" y="104.42" text-anchor="end">175</text><line class="grid" x1="64" y1="31.84" x2="764" y2="31.84"/><text class="tl" x="58" y="35.34" text-anchor="end">350</text><text class="al" x="58" y="12" text-anchor="end">kW</text><path class="ln gain" d="M64.0,31.84 L95.5,31.84 L127.0,31.84 L158.5,31.84 L190.0,31.84 L221.5,31.84 L253.0,31.84 L284.5,31.84 L316.0,31.84 L347.5,31.84 L379.0,31.84 L410.5,31.84 L442.0,31.84 L473.5,31.84 L505.0,31.84 L536.5,49.11 L568.0,77.89 L599.5,106.68 L631.0,135.46 L662.5,164.24 L694.0,170.0 L725.5,170.0 L757.0,170.0"/><line class="ax" x1="64" y1="170" x2="764" y2="170"/><line class="tick" x1="64.0" y1="170" x2="64.0" y2="174"/><text class="tl" x="64.0" y="185" text-anchor="middle">0</text><line class="tick" x1="239.0" y1="170" x2="239.0" y2="174"/><text class="tl" x="239.0" y="185" text-anchor="middle">100</text><line class="tick" x1="414.0" y1="170" x2="414.0" y2="174"/><text class="tl" x="414.0" y="185" text-anchor="middle">200</text><line class="tick" x1="589.0" y1="170" x2="589.0" y2="174"/><text class="tl" x="589.0" y="185" text-anchor="middle">300</text><line class="tick" x1="764.0" y1="170" x2="764.0" y2="174"/><text class="tl" x="764.0" y="185" text-anchor="middle">400</text><text class="al" x="764" y="200" text-anchor="end">km/h</text></svg></div>
+  <figcaption><b>Figure 1 — the deployment taper, learned not assumed</b>
+  Maximum MGU-K power actually delivered, as a function of speed. The 2026 rules taper deployment toward zero at high speed; rather than encoding the regulation, this curve is the upper envelope of what the car was observed to do. It is the reason energy spent at the end of a straight buys almost nothing.</figcaption>
+</figure>
+
+<div class="col">
+<h2><span class="num">02</span><span>Power limited, or grip limited?</span></h2>
+<p>This step is small, easy to skip, and getting it wrong quietly corrupts everything downstream.</p>
+<p>To know whether extra deployment would have made the car go faster at some point on track, you need to know what was <em>limiting</em> it there. The tempting test is throttle position: full throttle means the car wants more, so it must be power limited.</p>
+<p>That test is wrong, and it is wrong in precisely the place this tool exists to talk about. <strong>On a corner exit the car is traction limited.</strong> It is at full throttle and already using every newton the tyres will accept. Extra power there does not produce extra speed — it produces wheelspin.</p>
+<p>So the model compares, bin by bin, the acceleration actually achieved against what the fitted model says the delivered power should have produced. Where the car fell well short at full throttle, grip was the binding constraint, and the speed there stays capped at the driver's own best. Where it matched, power was binding, and the optimiser is free to find speed the driver never found.</p>
+<div class="note"><strong>Why this matters so much.</strong> Treating full throttle as power limited makes the optimiser promise corner-exit time that the tyres cannot deliver — it would recommend dumping energy into exits and then report a phantom gain when the driver complied. Fixing this took the model's lap-time error from 6.1% to 0.13%.</div>
+<p>There is a second, subtler version of the same mistake. An early version capped speed at whatever the driver <em>had achieved</em> in each bin. On a lap where they never deployed on the exits, that "proved" deploying on the exits was impossible — the model would have quietly confirmed whatever the driver already did.</p>
+</div>
+
+<div class="col">
+<h2><span class="num">03</span><span>The optimisation</span></h2>
+<p>Now the actual problem. Choose a deployment power <code>u</code> at every point on track to minimise lap time, without running the battery outside its limits, and finishing with as much charge as you started:</p>
+<div class="eq">minimise    T = Σ ds / v
+
+over        u(s) ∈ [0, P_max(v)]
+
+subject to  dE/ds = −u/v + h(s)
+            0 ≤ E ≤ E_cap
+            E(L) ≥ E_target</div>
+<p>The obvious approach is a two-dimensional dynamic program over distance and charge: discretise the battery into levels, and solve backwards. It works, and it is what I planned to build.</p>
+<p>I built something better, and the reason is worth the detour.</p>
+
+<h3>Relaxing the constraint gives you a price</h3>
+<p>The energy budget is what makes this hard — it couples every point on track to every other point. So take it out of the constraints and put it into the objective, multiplied by a number λ:</p>
+<div class="eq">min_u  Σ [ dt  +  λ · u · dt ]</div>
+<p>Now every point on track can be decided independently of the budget, because the budget has been replaced by a <em>price</em>. What remains is a one-dimensional dynamic program over speed alone — 56 speed levels × 9 power levels × 200 bins, milliseconds in numpy.</p>
+<p>Then you tune λ until the solution happens to spend exactly the energy available. Spending falls monotonically as the price rises, so a plain bisection converges.</p>
+</div>
+
+<figure>
+  <div class="figbody"><svg viewBox="0 0 880 268" role="img" aria-label="Energy spent falls monotonically as the shadow price rises"><line class="grid" x1="64" y1="210.0" x2="764" y2="210.0"/><text class="tl" x="58" y="213.5" text-anchor="end">0</text><line class="grid" x1="64" y1="154.12" x2="764" y2="154.12"/><text class="tl" x="58" y="157.62" text-anchor="end">1</text><line class="grid" x1="64" y1="98.24" x2="764" y2="98.24"/><text class="tl" x="58" y="101.74" text-anchor="end">2</text><line class="grid" x1="64" y1="42.35" x2="764" y2="42.35"/><text class="tl" x="58" y="45.85" text-anchor="end">3</text><text class="al" x="58" y="12" text-anchor="end">MJ spent</text><line class="budget" x1="64" y1="98.24" x2="764" y2="98.24"/><text class="lamlab" x="768" y="101.74">budget 2.00 MJ</text><path class="ln gain" d="M64.0,29.41 L67.5,29.57 L68.2,30.21 L69.04,30.76 L70.05,30.84 L71.27,31.5 L72.73,31.89 L74.47,33.02 L76.57,33.75 L79.1,35.41 L82.12,36.61 L85.75,37.82 L90.11,40.03 L95.35,42.43 L101.63,45.63 L109.18,49.25 L118.23,55.95 L129.1,67.64 L142.15,85.67 L157.82,110.76 L176.63,143.89 L199.2,178.72 L226.3,204.76 L258.84,210.0 L297.9,210.0 L344.78,210.0 L401.07,210.0 L468.63,210.0 L549.74,210.0 L647.11,210.0 L764.0,210.0"/><line class="lam" x1="151.5" y1="20" x2="151.5" y2="210"/><circle class="dot" cx="151.5" cy="98.24" r="4"/><text class="lamlab" x="159.5" y="36">λ* = 0.50 s/MJ</text><line class="ax" x1="64" y1="210" x2="764" y2="210"/><line class="tick" x1="64.0" y1="210" x2="64.0" y2="214"/><text class="tl" x="64.0" y="225" text-anchor="middle">0</text><line class="tick" x1="239.0" y1="210" x2="239.0" y2="214"/><text class="tl" x="239.0" y="225" text-anchor="middle">1</text><line class="tick" x1="414.0" y1="210" x2="414.0" y2="214"/><text class="tl" x="414.0" y="225" text-anchor="middle">2</text><line class="tick" x1="589.0" y1="210" x2="589.0" y2="214"/><text class="tl" x="589.0" y="225" text-anchor="middle">3</text><line class="tick" x1="764.0" y1="210" x2="764.0" y2="214"/><text class="tl" x="764.0" y="225" text-anchor="middle">4</text><text class="al" x="764" y="240" text-anchor="end">λ  (s/MJ)</text></svg></div>
+  <figcaption><b>Figure 2 — finding λ by bisection</b>
+  Energy the solver chooses to spend, as a function of the price charged for it. Monotone, which is what makes bisection safe. At λ = 0 energy is free and the car deploys flat out, spending 3.2 MJ; the lap's actual budget of 2.00 MJ is met at λ* = 0.50 s/MJ. About 20 dynamic programs, roughly 120 ms.</figcaption>
+</figure>
+
+<div class="col">
+<p>This is Pontryagin's maximum principle, and λ is the <strong>co-state</strong>. The reason it is worth preferring over the two-dimensional program is not that it is faster — though it is — but that λ is a real, interpretable quantity that falls out as a first-class object rather than as a finite difference of a value surface:</p>
+<div class="note"><strong>λ is the shadow price of energy: seconds per joule.</strong> It answers "if I had one more joule on this lap, how much lap time would it buy me?" On the test circuit, 0.50 seconds per megajoule.</div>
+
+<h3>The decision rule, and what a joule actually buys</h3>
+<p>With a price in hand the optimal policy becomes almost trivially interpretable. Define <code>g(s)</code> as the marginal seconds saved per joule deployed at a point. Then:</p>
+<div class="eq">deploy where  g(s) &gt; λ        <span class="c">the joule buys more than it costs</span>
+coast  where  g(s) &lt; λ        <span class="c">it is worth more somewhere else</span></div>
+<p>Corner exits beating the end of a straight is not a rule the tool was taught. It is what falls out, because <code>g</code> is large at low speed and collapses toward zero above the taper knee.</p>
+<p>Computing <code>g</code> correctly is where I got it wrong the first time, and the bug is instructive. My first version measured the time saved <em>inside</em> that bin. But a joule spent on a corner exit does not just shorten that ten metres — the car leaves faster and <em>stays</em> faster all the way down the following straight, and almost all the benefit is in that tail. Measuring locally understated the value by a factor of twenty, which made the comparison against λ meaningless and silently broke the entire attribution layer.</p>
+<p>The fix is the <strong>adjoint method</strong>: one backward pass that accumulates every downstream consequence, in O(n) rather than n separate re-simulations.</p>
+<div class="eq">φ_i  =  ∂dt_i/∂v_i  +  ( ∂dt_i/∂v_next + φ_{i+1} ) · ∂v_next/∂v_i
+
+<span class="c">φ_i is the sensitivity of the whole remaining lap to speed at point i</span></div>
+<p>Where the next speed is clamped — a braking zone, or a corner already taken at the limit — the derivative is zero and the chain terminates. Extra speed there is simply thrown away. That single term is why deploying into a braking zone or a traction-limited exit is worth nothing, and it is now a consequence of the maths rather than a special case in the code.</p>
+<div class="note"><strong>Checked against brute force.</strong> Perturbing deployment at a single point and re-simulating the entire lap agrees with the adjoint to four decimal places (0.7056 vs 0.7056 s/MJ; 0.6315 vs 0.6323 at a noisier point).</div>
+</div>
+
+<figure>
+  <div class="figbody"><svg viewBox="0 0 880 300" role="img" aria-label="Marginal value of energy against the shadow price, and the resulting deployment"><rect class="corner" x="198.4" y="0" width="109.2" height="100%"/><rect class="corner" x="588.4" y="0" width="109.2" height="100%"/><line class="grid" x1="58" y1="144.0" x2="838" y2="144.0"/><text class="tl" x="52" y="147.5" text-anchor="end">0</text><line class="grid" x1="58" y1="104.67" x2="838" y2="104.67"/><text class="tl" x="52" y="108.17" text-anchor="end">0.3</text><line class="grid" x1="58" y1="65.33" x2="838" y2="65.33"/><text class="tl" x="52" y="68.83" text-anchor="end">0.6</text><line class="grid" x1="58" y1="26.0" x2="838" y2="26.0"/><text class="tl" x="52" y="29.5" text-anchor="end">0.9</text><text class="al" x="52" y="18" text-anchor="end">s/MJ</text><line class="grid" x1="58" y1="252.0" x2="838" y2="252.0"/><text class="tl" x="52" y="255.5" text-anchor="end">0</text><line class="grid" x1="58" y1="217.0" x2="838" y2="217.0"/><text class="tl" x="52" y="220.5" text-anchor="end">175</text><line class="grid" x1="58" y1="182.0" x2="838" y2="182.0"/><text class="tl" x="52" y="185.5" text-anchor="end">350</text><text class="al" x="52" y="172" text-anchor="end">kW</text><path class="band" d="M58.0,78.45 L61.9,78.45 L65.8,78.45 L69.7,78.45 L73.6,78.45 L77.5,78.45 L81.4,78.45 L85.3,78.45 L89.2,78.45 L93.1,78.45 L97.0,78.45 L100.9,78.45 L104.8,78.45 L108.7,78.45 L112.6,78.45 L116.5,78.45 L120.4,78.45 L124.3,78.45 L128.2,78.45 L132.1,78.45 L136.0,78.45 L139.9,78.45 L143.8,78.45 L147.7,78.45 L151.6,78.45 L155.5,78.45 L159.4,78.45 L163.3,78.45 L167.2,78.45 L171.1,78.45 L175.0,78.45 L178.9,78.45 L182.8,78.45 L186.7,78.45 L190.6,78.45 L194.5,78.45 L198.4,78.45 L202.3,78.45 L206.2,78.45 L210.1,78.45 L214.0,78.45 L217.9,78.45 L221.8,78.45 L225.7,78.45 L229.6,78.45 L233.5,78.45 L237.4,78.45 L241.3,78.45 L245.2,78.45 L249.1,78.45 L253.0,78.45 L256.9,78.45 L260.8,78.45 L264.7,78.45 L268.6,78.45 L272.5,78.45 L276.4,78.45 L280.3,36.33 L284.2,42.38 L288.1,48.13 L292.0,51.49 L295.9,55.25 L299.8,58.2 L303.7,60.06 L307.6,62.17 L311.5,63.77 L315.4,65.25 L319.3,66.55 L323.2,67.72 L327.1,68.77 L331.0,69.71 L334.9,70.6 L338.8,71.44 L342.7,72.23 L346.6,72.99 L350.5,73.7 L354.4,74.39 L358.3,75.07 L362.2,75.73 L366.1,76.39 L370.0,77.02 L373.9,77.64 L377.8,78.27 L381.7,78.45 L385.6,78.45 L389.5,78.45 L393.4,78.45 L397.3,78.45 L401.2,78.45 L405.1,78.45 L409.0,78.45 L412.9,78.45 L416.8,78.45 L420.7,78.45 L424.6,78.45 L428.5,78.45 L432.4,78.45 L436.3,78.45 L440.2,78.45 L444.1,78.45 L448.0,78.45 L451.9,78.45 L455.8,78.45 L459.7,78.45 L463.6,78.45 L467.5,78.45 L471.4,78.45 L475.3,78.45 L479.2,78.45 L483.1,78.45 L487.0,78.45 L490.9,78.45 L494.8,78.45 L498.7,78.45 L502.6,78.45 L506.5,78.45 L510.4,78.45 L514.3,78.45 L518.2,78.45 L522.1,78.45 L526.0,78.45 L529.9,78.45 L533.8,78.45 L537.7,78.45 L541.6,78.45 L545.5,78.45 L549.4,78.45 L553.3,78.45 L557.2,78.45 L561.1,78.45 L565.0,78.45 L568.9,78.45 L572.8,78.45 L576.7,78.45 L580.6,78.45 L584.5,78.45 L588.4,78.45 L592.3,78.45 L596.2,78.45 L600.1,78.45 L604.0,78.45 L607.9,78.45 L611.8,78.45 L615.7,78.45 L619.6,78.45 L623.5,78.45 L627.4,78.45 L631.3,78.45 L635.2,78.45 L639.1,78.45 L643.0,78.45 L646.9,78.45 L650.8,78.45 L654.7,78.45 L658.6,78.45 L662.5,78.45 L666.4,78.45 L670.3,44.07 L674.2,50.74 L678.1,57.07 L682.0,61.2 L685.9,65.61 L689.8,69.24 L693.7,71.89 L697.6,74.71 L701.5,77.05 L705.4,78.45 L709.3,78.45 L713.2,78.45 L717.1,78.45 L721.0,78.45 L724.9,78.45 L728.8,78.45 L732.7,78.45 L736.6,78.45 L740.5,78.45 L744.4,78.45 L748.3,78.45 L752.2,78.45 L756.1,78.45 L760.0,78.45 L763.9,78.45 L767.8,78.45 L771.7,78.45 L775.6,78.45 L779.5,78.45 L783.4,78.45 L787.3,78.45 L791.2,78.45 L795.1,78.45 L799.0,78.45 L802.9,78.45 L806.8,78.45 L810.7,78.45 L814.6,78.45 L818.5,78.45 L822.4,78.45 L826.3,78.45 L830.2,78.45 L834.1,78.45 L834.1,144 L58.0,144 Z"/><rect class="mask" x="58" y="78.4" width="780" height="65.6"/><path class="ln gain" d="M58.0,112.87 L61.9,113.83 L65.8,114.83 L69.7,115.85 L73.6,116.93 L77.5,118.03 L81.4,119.18 L85.3,120.37 L89.2,121.61 L93.1,122.88 L97.0,124.2 L100.9,125.57 L104.8,126.98 L108.7,128.45 L112.6,129.96 L116.5,131.52 L120.4,133.13 L124.3,134.81 L128.2,136.53 L132.1,138.31 L136.0,140.15 L139.9,142.03 L143.8,144.0 L147.7,144.0 L151.6,144.0 L155.5,144.0 L159.4,144.0 L163.3,144.0 L167.2,144.0 L171.1,144.0 L175.0,144.0 L178.9,144.0 L182.8,144.0 L186.7,144.0 L190.6,144.0 L194.5,144.0 L198.4,144.0 L202.3,144.0 L206.2,144.0 L210.1,144.0 L214.0,144.0 L217.9,144.0 L221.8,144.0 L225.7,144.0 L229.6,144.0 L233.5,144.0 L237.4,144.0 L241.3,144.0 L245.2,144.0 L249.1,144.0 L253.0,144.0 L256.9,144.0 L260.8,144.0 L264.7,144.0 L268.6,144.0 L272.5,144.0 L276.4,144.0 L280.3,36.33 L284.2,42.38 L288.1,48.13 L292.0,51.49 L295.9,55.25 L299.8,58.2 L303.7,60.06 L307.6,62.17 L311.5,63.77 L315.4,65.25 L319.3,66.55 L323.2,67.72 L327.1,68.77 L331.0,69.71 L334.9,70.6 L338.8,71.44 L342.7,72.23 L346.6,72.99 L350.5,73.7 L354.4,74.39 L358.3,75.07 L362.2,75.73 L366.1,76.39 L370.0,77.02 L373.9,77.64 L377.8,78.27 L381.7,79.0 L385.6,79.91 L389.5,80.86 L393.4,81.8 L397.3,82.76 L401.2,83.73 L405.1,84.74 L409.0,85.76 L412.9,86.8 L416.8,87.87 L420.7,88.97 L424.6,90.1 L428.5,91.25 L432.4,92.43 L436.3,93.64 L440.2,94.89 L444.1,96.16 L448.0,97.46 L451.9,98.79 L455.8,100.17 L459.7,101.57 L463.6,103.01 L467.5,104.5 L471.4,106.02 L475.3,107.58 L479.2,109.18 L483.1,110.82 L487.0,112.51 L490.9,114.24 L494.8,116.02 L498.7,117.84 L502.6,119.72 L506.5,121.63 L510.4,123.61 L514.3,125.64 L518.2,127.73 L522.1,129.87 L526.0,132.07 L529.9,134.32 L533.8,136.64 L537.7,139.03 L541.6,141.48 L545.5,144.0 L549.4,144.0 L553.3,144.0 L557.2,144.0 L561.1,144.0 L565.0,144.0 L568.9,144.0 L572.8,144.0 L576.7,144.0 L580.6,144.0 L584.5,144.0 L588.4,144.0 L592.3,144.0 L596.2,144.0 L600.1,144.0 L604.0,144.0 L607.9,144.0 L611.8,144.0 L615.7,144.0 L619.6,144.0 L623.5,144.0 L627.4,144.0 L631.3,144.0 L635.2,144.0 L639.1,144.0 L643.0,144.0 L646.9,144.0 L650.8,144.0 L654.7,144.0 L658.6,144.0 L662.5,144.0 L666.4,144.0 L670.3,44.07 L674.2,50.74 L678.1,57.07 L682.0,61.2 L685.9,65.61 L689.8,69.24 L693.7,71.89 L697.6,74.71 L701.5,77.05 L705.4,79.26 L709.3,81.29 L713.2,83.19 L717.1,84.99 L721.0,86.69 L724.9,88.34 L728.8,89.94 L732.7,91.52 L736.6,93.05 L740.5,94.56 L744.4,96.07 L748.3,97.56 L752.2,99.06 L756.1,100.55 L760.0,102.14 L763.9,103.96 L767.8,105.72 L771.7,107.52 L775.6,109.36 L779.5,111.25 L783.4,113.18 L787.3,115.16 L791.2,117.17 L795.1,119.25 L799.0,121.37 L802.9,123.55 L806.8,125.78 L810.7,128.07 L814.6,130.42 L818.5,132.82 L822.4,135.28 L826.3,137.81 L830.2,140.41 L834.1,142.86"/><line class="lam" x1="58" y1="78.45" x2="838" y2="78.45"/><text class="lamlab" x="842" y="81.95">λ = 0.50</text><path class="ar opt" d="M58.0,252.0 L61.9,252.0 L65.8,252.0 L69.7,252.0 L73.6,252.0 L77.5,252.0 L81.4,252.0 L85.3,252.0 L89.2,252.0 L93.1,252.0 L97.0,252.0 L100.9,252.0 L104.8,252.0 L108.7,252.0 L112.6,252.0 L116.5,252.0 L120.4,252.0 L124.3,252.0 L128.2,252.0 L132.1,252.0 L136.0,252.0 L139.9,252.0 L143.8,252.0 L147.7,252.0 L151.6,252.0 L155.5,252.0 L159.4,252.0 L163.3,252.0 L167.2,252.0 L171.1,252.0 L175.0,252.0 L178.9,252.0 L182.8,252.0 L186.7,252.0 L190.6,252.0 L194.5,252.0 L198.4,252.0 L202.3,252.0 L206.2,252.0 L210.1,252.0 L214.0,252.0 L217.9,252.0 L221.8,252.0 L225.7,252.0 L229.6,252.0 L233.5,252.0 L237.4,252.0 L241.3,252.0 L245.2,252.0 L249.1,252.0 L253.0,252.0 L256.9,252.0 L260.8,252.0 L264.7,252.0 L268.6,252.0 L272.5,252.0 L276.4,252.0 L280.3,252.0 L284.2,238.54 L288.1,238.82 L292.0,208.2 L295.9,211.98 L299.8,205.16 L303.7,182.0 L307.6,188.06 L311.5,182.0 L315.4,182.0 L319.3,182.0 L323.2,182.0 L327.1,182.0 L331.0,182.0 L334.9,184.1 L338.8,186.1 L342.7,187.96 L346.6,189.66 L350.5,191.6 L354.4,194.08 L358.3,196.36 L362.2,198.48 L366.1,200.44 L370.0,202.26 L373.9,203.96 L377.8,205.56 L381.7,217.6 L385.6,240.32 L389.5,252.0 L393.4,252.0 L397.3,252.0 L401.2,252.0 L405.1,252.0 L409.0,252.0 L412.9,252.0 L416.8,252.0 L420.7,252.0 L424.6,252.0 L428.5,252.0 L432.4,252.0 L436.3,252.0 L440.2,252.0 L444.1,252.0 L448.0,252.0 L451.9,252.0 L455.8,252.0 L459.7,252.0 L463.6,252.0 L467.5,252.0 L471.4,252.0 L475.3,252.0 L479.2,252.0 L483.1,252.0 L487.0,252.0 L490.9,252.0 L494.8,252.0 L498.7,252.0 L502.6,252.0 L506.5,252.0 L510.4,252.0 L514.3,252.0 L518.2,252.0 L522.1,252.0 L526.0,252.0 L529.9,252.0 L533.8,252.0 L537.7,252.0 L541.6,252.0 L545.5,252.0 L549.4,252.0 L553.3,252.0 L557.2,252.0 L561.1,252.0 L565.0,252.0 L568.9,252.0 L572.8,252.0 L576.7,252.0 L580.6,252.0 L584.5,252.0 L588.4,252.0 L592.3,252.0 L596.2,252.0 L600.1,252.0 L604.0,252.0 L607.9,252.0 L611.8,252.0 L615.7,252.0 L619.6,252.0 L623.5,252.0 L627.4,252.0 L631.3,252.0 L635.2,252.0 L639.1,252.0 L643.0,252.0 L646.9,252.0 L650.8,252.0 L654.7,252.0 L658.6,252.0 L662.5,252.0 L666.4,252.0 L670.3,252.0 L674.2,238.54 L678.1,238.82 L682.0,208.2 L685.9,211.98 L689.8,205.16 L693.7,182.0 L697.6,188.06 L701.5,182.0 L705.4,182.0 L709.3,182.0 L713.2,182.0 L717.1,182.0 L721.0,182.0 L724.9,184.1 L728.8,186.1 L732.7,187.96 L736.6,189.66 L740.5,191.6 L744.4,194.08 L748.3,196.36 L752.2,198.48 L756.1,200.44 L760.0,214.98 L763.9,252.0 L767.8,252.0 L771.7,252.0 L775.6,252.0 L779.5,252.0 L783.4,252.0 L787.3,252.0 L791.2,252.0 L795.1,252.0 L799.0,252.0 L802.9,252.0 L806.8,252.0 L810.7,252.0 L814.6,252.0 L818.5,252.0 L822.4,252.0 L826.3,252.0 L830.2,252.0 L834.1,252.0 L834.1,252 L58.0,252 Z"/><line class="ax" x1="58" y1="252" x2="838" y2="252"/><line class="tick" x1="58.0" y1="252" x2="58.0" y2="256"/><text class="tl" x="58.0" y="267" text-anchor="middle">0</text><line class="tick" x1="253.0" y1="252" x2="253.0" y2="256"/><text class="tl" x="253.0" y="267" text-anchor="middle">500</text><line class="tick" x1="448.0" y1="252" x2="448.0" y2="256"/><text class="tl" x="448.0" y="267" text-anchor="middle">1000</text><line class="tick" x1="643.0" y1="252" x2="643.0" y2="256"/><text class="tl" x="643.0" y="267" text-anchor="middle">1500</text><line class="tick" x1="838.0" y1="252" x2="838.0" y2="256"/><text class="tl" x="838.0" y="267" text-anchor="middle">2000</text><text class="al" x="838" y="282" text-anchor="end">m</text><text class="pl" x="58" y="18">g(s) — marginal seconds per megajoule</text><text class="pl" x="58" y="176">u*(s) — where the solver deploys</text></svg></div>
+  <figcaption><b>Figure 3 — the decision rule</b>
+  Above: what a joule buys at each point on track, against the price λ. Shaded where <code>g &gt; λ</code>. Below: where the solver actually deploys. The two agree — deployment appears exactly on the corner exits, where the marginal value peaks at 0.82 s/MJ, and vanishes at the end of the straights where it falls below 0.1. Grey bands mark the two corners. The agreement is close but not perfect: the control grid is discrete, so a few bins near the boundary go either way.
+  <span class="key"><i class="k-lam">g(s) and λ</i><i class="k-opt">u*(s), optimal deployment</i></span></figcaption>
+</figure>
+
+<div class="col">
+<h3>When the battery hits empty, the price jumps</h3>
+<p>The relaxation above assumes λ is a single number for the whole lap. That is true only while the charge stays strictly between its limits. The moment the battery hits zero mid-lap, energy before that point and energy after it are no longer interchangeable, and a single price cannot describe both.</p>
+<p>The maximum principle says exactly what happens: the co-state is piecewise constant and <strong>jumps at the contact point</strong>. So the solver detects where charge would go negative, splits the lap there, and solves each segment with its own λ — targeting a small reserve at the join rather than exactly zero, because a plan that aims at precisely empty lands just below it, and a plan that schedules a negative battery is not one anyone can drive.</p>
+<p>This is what makes "empty through sector 3" a case the solver <em>handles</em> rather than an error it reports.</p>
+</div>
+
+<figure>
+  <div class="figbody"><svg viewBox="0 0 880 226" role="img" aria-label="State of charge around the lap"><rect class="corner" x="198.4" y="0" width="109.2" height="100%"/><rect class="corner" x="588.4" y="0" width="109.2" height="100%"/><line class="grid" x1="58" y1="170.0" x2="838" y2="170.0"/><text class="tl" x="52" y="173.5" text-anchor="end">0</text><line class="grid" x1="58" y1="120.0" x2="838" y2="120.0"/><text class="tl" x="52" y="123.5" text-anchor="end">0.8</text><line class="grid" x1="58" y1="70.0" x2="838" y2="70.0"/><text class="tl" x="52" y="73.5" text-anchor="end">1.6</text><line class="grid" x1="58" y1="20.0" x2="838" y2="20.0"/><text class="tl" x="52" y="23.5" text-anchor="end">2.4</text><text class="al" x="52" y="12" text-anchor="end">MJ</text><path class="ln drv" d="M58.0,45.0 L61.9,45.12 L65.8,45.19 L69.7,45.31 L73.6,45.37 L77.5,45.5 L81.4,45.56 L85.3,45.69 L89.2,45.75 L93.1,45.88 L97.0,46.0 L100.9,46.06 L104.8,46.19 L108.7,46.25 L112.6,46.38 L116.5,46.44 L120.4,46.56 L124.3,46.69 L128.2,46.75 L132.1,46.88 L136.0,46.94 L139.9,47.06 L143.8,47.31 L147.7,47.75 L151.6,48.44 L155.5,49.31 L159.4,50.56 L163.3,52.0 L167.2,53.75 L171.1,55.87 L175.0,58.25 L178.9,60.94 L182.8,63.94 L186.7,67.12 L190.6,70.37 L194.5,73.81 L198.4,77.37 L202.3,81.0 L206.2,84.81 L210.1,88.75 L214.0,92.88 L217.9,90.94 L221.8,89.19 L225.7,87.62 L229.6,86.31 L233.5,85.25 L237.4,84.5 L241.3,84.06 L245.2,83.94 L249.1,84.31 L253.0,85.06 L256.9,92.12 L260.8,98.69 L264.7,104.81 L268.6,110.62 L272.5,116.12 L276.4,121.31 L280.3,126.25 L284.2,130.94 L288.1,135.44 L292.0,139.75 L295.9,143.88 L299.8,147.81 L303.7,151.62 L307.6,155.31 L311.5,158.81 L315.4,162.31 L319.3,165.62 L323.2,168.94 L327.1,172.12 L331.0,175.12 L334.9,177.88 L338.8,180.44 L342.7,182.62 L346.6,184.5 L350.5,186.12 L354.4,187.5 L358.3,188.56 L362.2,189.31 L366.1,189.88 L370.0,190.12 L373.9,190.25 L377.8,190.38 L381.7,190.44 L385.6,190.56 L389.5,190.69 L393.4,190.81 L397.3,190.94 L401.2,191.06 L405.1,191.19 L409.0,191.25 L412.9,191.38 L416.8,191.5 L420.7,191.62 L424.6,191.75 L428.5,191.88 L432.4,191.94 L436.3,192.06 L440.2,192.19 L444.1,192.31 L448.0,192.44 L451.9,192.56 L455.8,192.62 L459.7,192.75 L463.6,192.88 L467.5,193.0 L471.4,193.12 L475.3,193.19 L479.2,193.31 L483.1,193.44 L487.0,193.56 L490.9,193.69 L494.8,193.75 L498.7,193.88 L502.6,194.0 L506.5,194.12 L510.4,194.19 L514.3,194.31 L518.2,194.44 L522.1,194.56 L526.0,194.69 L529.9,194.75 L533.8,195.0 L537.7,195.5 L541.6,196.25 L545.5,197.19 L549.4,198.38 L553.3,199.88 L557.2,201.62 L561.1,203.69 L565.0,206.12 L568.9,208.81 L572.8,211.75 L576.7,214.94 L580.6,218.25 L584.5,221.69 L588.4,225.19 L592.3,228.88 L596.2,232.69 L600.1,236.62 L604.0,236.62 L607.9,230.38 L611.8,224.12 L615.7,217.88 L619.6,211.62 L623.5,205.38 L627.4,199.12 L631.3,192.88 L635.2,186.62 L639.1,180.38 L643.0,174.12 L646.9,174.12 L650.8,174.12 L654.7,174.12 L658.6,174.12 L662.5,174.12 L666.4,174.12 L670.3,174.12 L674.2,174.12 L678.1,174.12 L682.0,174.12 L685.9,174.12 L689.8,174.12 L693.7,174.12 L697.6,174.12 L701.5,174.12 L705.4,174.12 L709.3,174.12 L713.2,174.12 L717.1,174.12 L721.0,174.12 L724.9,174.12 L728.8,174.12 L732.7,174.12 L736.6,174.12 L740.5,174.12 L744.4,174.12 L748.3,174.12 L752.2,174.12 L756.1,174.12 L760.0,174.12 L763.9,174.12 L767.8,174.12 L771.7,174.12 L775.6,174.12 L779.5,174.12 L783.4,174.12 L787.3,174.12 L791.2,174.12 L795.1,174.12 L799.0,174.12 L802.9,174.12 L806.8,174.12 L810.7,174.12 L814.6,174.12 L818.5,174.12 L822.4,174.12 L826.3,174.12 L830.2,174.12 L834.1,174.12"/><path class="ln opt" d="M58.0,45.0 L61.9,45.0 L65.8,45.0 L69.7,45.0 L73.6,45.0 L77.5,45.0 L81.4,45.0 L85.3,45.0 L89.2,45.0 L93.1,45.0 L97.0,45.0 L100.9,45.0 L104.8,45.0 L108.7,45.0 L112.6,45.0 L116.5,45.0 L120.4,45.0 L124.3,45.0 L128.2,45.0 L132.1,45.0 L136.0,45.0 L139.9,45.0 L143.8,45.0 L147.7,45.0 L151.6,45.0 L155.5,45.0 L159.4,45.0 L163.3,45.0 L167.2,45.0 L171.1,45.0 L175.0,45.0 L178.9,45.0 L182.8,45.0 L186.7,45.0 L190.6,45.0 L194.5,45.0 L198.4,45.0 L202.3,45.0 L206.2,45.0 L210.1,45.0 L214.0,45.0 L217.9,38.75 L221.8,32.5 L225.7,26.25 L229.6,20.0 L233.5,13.75 L237.4,7.5 L241.3,1.25 L245.2,-5.0 L249.1,-11.25 L253.0,-17.5 L256.9,-17.5 L260.8,-17.5 L264.7,-17.5 L268.6,-17.5 L272.5,-17.5 L276.4,-17.5 L280.3,-17.5 L284.2,-17.5 L288.1,-16.63 L292.0,-15.81 L295.9,-13.25 L299.8,-11.0 L303.7,-8.44 L307.6,-4.75 L311.5,-1.44 L315.4,2.0 L319.3,5.38 L323.2,8.69 L327.1,11.88 L331.0,15.06 L334.9,18.12 L338.8,21.12 L342.7,23.94 L346.6,26.62 L350.5,29.25 L354.4,31.75 L358.3,34.06 L362.2,36.31 L366.1,38.5 L370.0,40.56 L373.9,42.5 L377.8,44.38 L381.7,46.19 L385.6,47.5 L389.5,47.94 L393.4,47.94 L397.3,47.94 L401.2,47.94 L405.1,47.94 L409.0,47.94 L412.9,47.94 L416.8,47.94 L420.7,47.94 L424.6,47.94 L428.5,47.94 L432.4,47.94 L436.3,47.94 L440.2,47.94 L444.1,47.94 L448.0,47.94 L451.9,47.94 L455.8,47.94 L459.7,47.94 L463.6,47.94 L467.5,47.94 L471.4,47.94 L475.3,47.94 L479.2,47.94 L483.1,47.94 L487.0,47.94 L490.9,47.94 L494.8,47.94 L498.7,47.94 L502.6,47.94 L506.5,47.94 L510.4,47.94 L514.3,47.94 L518.2,47.94 L522.1,47.94 L526.0,47.94 L529.9,47.94 L533.8,47.94 L537.7,47.94 L541.6,47.94 L545.5,47.94 L549.4,47.94 L553.3,47.94 L557.2,47.94 L561.1,47.94 L565.0,47.94 L568.9,47.94 L572.8,47.94 L576.7,47.94 L580.6,47.94 L584.5,47.94 L588.4,47.94 L592.3,47.94 L596.2,47.94 L600.1,47.94 L604.0,47.94 L607.9,41.69 L611.8,35.44 L615.7,29.19 L619.6,22.94 L623.5,16.69 L627.4,10.44 L631.3,4.19 L635.2,-2.06 L639.1,-8.31 L643.0,-14.56 L646.9,-14.56 L650.8,-14.56 L654.7,-14.56 L658.6,-14.56 L662.5,-14.56 L666.4,-14.56 L670.3,-14.56 L674.2,-14.56 L678.1,-13.69 L682.0,-12.88 L685.9,-10.25 L689.8,-8.0 L693.7,-5.44 L697.6,-1.75 L701.5,1.5 L705.4,4.94 L709.3,8.31 L713.2,11.62 L717.1,14.88 L721.0,18.0 L724.9,21.12 L728.8,24.06 L732.7,26.88 L736.6,29.56 L740.5,32.19 L744.4,34.69 L748.3,37.06 L752.2,39.31 L756.1,41.44 L760.0,43.5 L763.9,44.94 L767.8,44.94 L771.7,44.94 L775.6,44.94 L779.5,44.94 L783.4,44.94 L787.3,44.94 L791.2,44.94 L795.1,44.94 L799.0,44.94 L802.9,44.94 L806.8,44.94 L810.7,44.94 L814.6,44.94 L818.5,44.94 L822.4,44.94 L826.3,44.94 L830.2,44.94 L834.1,44.94"/><line class="ax" x1="58" y1="170" x2="838" y2="170"/><line class="tick" x1="58.0" y1="170" x2="58.0" y2="174"/><text class="tl" x="58.0" y="185" text-anchor="middle">0</text><line class="tick" x1="253.0" y1="170" x2="253.0" y2="174"/><text class="tl" x="253.0" y="185" text-anchor="middle">500</text><line class="tick" x1="448.0" y1="170" x2="448.0" y2="174"/><text class="tl" x="448.0" y="185" text-anchor="middle">1000</text><line class="tick" x1="643.0" y1="170" x2="643.0" y2="174"/><text class="tl" x="643.0" y="185" text-anchor="middle">1500</text><line class="tick" x1="838.0" y1="170" x2="838.0" y2="174"/><text class="tl" x="838.0" y="185" text-anchor="middle">2000</text><text class="al" x="838" y="200" text-anchor="end">m</text></svg></div>
+  <figcaption><b>Figure 4 — state of charge around the lap</b>
+  The optimal plan (solid) spends into each corner exit and recovers under braking, returning to where it started — energy neutral, so it repeats next lap. The battery-dump lap (dashed) is flat before the second corner and has nothing left for the rest of the lap, and nothing to hand to the lap after.
+  <span class="key"><i class="k-opt">optimal</i><i class="k-drv">battery dump</i></span></figcaption>
+</figure>
+
+<div class="col">
+<h3>The terminal condition, measured rather than guessed</h3>
+<p>One loose end. A lap is a loop, so the solver needs to know what speed at the finish line is worth — otherwise it coasts across the line to bank energy, or over-buys speed it cannot use.</p>
+<p>I first set this to a hand-picked constant. It was more than double the true value, and the solver duly wasted 200 kW over the last 130 m of every lap. The honest version reads it off the adjoint: <code>φ</code> at the start line <em>is</em> the value of speed at the finish line, because they are the same place. The solver now recalibrates it from each solution, converging to 0.022 s per m/s against a brute-force measurement of 0.026.</p>
+</div>
+
+<div class="col">
+<h2><span class="num">04</span><span>Turning a solved lap into one sentence</span></h2>
+<p>The optimiser produces a plan. The driver needs a <em>diagnosis</em>: one thing to fix, and what it is worth. This is where it is easiest to produce numbers that look authoritative and are quietly wrong, so the accounting is deliberately conservative.</p>
+<p>Three quantities are kept strictly separate, because they are different currencies:</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Quantity</th><th>How it is measured</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Allocation loss</strong><br><span style="color:var(--muted)">this lap</span></td><td>Simulated actual lap minus the optimal lap <em>on exactly the energy you spent</em></td></tr>
+    <tr><td><strong>Harvest loss</strong><br><span style="color:var(--muted)">this lap</span></td><td>Re-solving on the energy your own best braking recovers in the same zones</td></tr>
+    <tr><td><strong>Sustainability cost</strong><br><span style="color:var(--muted)">next lap</span></td><td>λ × the charge deficit carried over the line</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Two decisions that make the numbers trustworthy</h3>
+<p><strong>Compare against the same energy you actually spent.</strong> This sounds like a detail and is the difference between working and not. If you compare a battery-dump lap against an energy-neutral optimum, the dump lap had <em>more</em> energy available, so its poor placement is masked by its larger budget and the whole thing nets out to nearly zero. Holding the energy fixed isolates placement; the overspending is then charged once, separately, to the next lap. Making this change moved a deliberately terrible lap from a reported 0.05 s to 0.93 s.</p>
+<p><strong>Let the economics rank, and the simulator total.</strong> The tempting move is to price each mistake as λ × the misplaced energy. On the first terrible lap that produced 2.02 s of "wasted deployment" against a lap whose entire measured loss was 0.66 s. The error is conceptual: λ is by definition the value of the <em>last</em> joule, and energy has diminishing returns, so pricing a large block at the marginal rate always overstates it. Now λ and <code>g</code> decide the ranking — which symptom dominates — and the total comes from the simulator, so the parts sum to something real.</p>
+</div>
+
+<div class="col">
+<h2><span class="num">05</span><span>A worked lap</span></h2>
+<p>Same circuit, same car, same 2.00 MJ. One lap deploys flat out from the start line until the battery is flat; the other is the solver's plan.</p>
+</div>
+
+<figure>
+  <div class="figbody"><svg viewBox="0 0 880 300" role="img" aria-label="Speed and deployment around the lap, optimal versus battery-dump"><rect class="corner" x="198.4" y="0" width="109.2" height="100%"/><rect class="corner" x="588.4" y="0" width="109.2" height="100%"/><line class="grid" x1="58" y1="142.0" x2="838" y2="142.0"/><text class="tl" x="52" y="145.5" text-anchor="end">0</text><line class="grid" x1="58" y1="99.33" x2="838" y2="99.33"/><text class="tl" x="52" y="102.83" text-anchor="end">120</text><line class="grid" x1="58" y1="56.67" x2="838" y2="56.67"/><text class="tl" x="52" y="60.17" text-anchor="end">240</text><line class="grid" x1="58" y1="14.0" x2="838" y2="14.0"/><text class="tl" x="52" y="17.5" text-anchor="end">360</text><text class="al" x="52" y="6" text-anchor="end">km/h</text><line class="grid" x1="58" y1="252.0" x2="838" y2="252.0"/><text class="tl" x="52" y="255.5" text-anchor="end">0</text><line class="grid" x1="58" y1="216.03" x2="838" y2="216.03"/><text class="tl" x="52" y="219.53" text-anchor="end">175</text><line class="grid" x1="58" y1="180.06" x2="838" y2="180.06"/><text class="tl" x="52" y="183.56" text-anchor="end">350</text><text class="al" x="52" y="170" text-anchor="end">kW</text><path class="ln drv" d="M58.0,20.4 L61.9,20.72 L65.8,21.04 L69.7,21.32 L73.6,21.64 L77.5,21.93 L81.4,22.21 L85.3,22.5 L89.2,22.75 L93.1,23.03 L97.0,23.28 L100.9,23.53 L104.8,23.78 L108.7,24.03 L112.6,24.28 L116.5,24.49 L120.4,24.74 L124.3,24.95 L128.2,25.16 L132.1,25.38 L136.0,25.59 L139.9,25.77 L143.8,25.95 L147.7,27.58 L151.6,30.39 L155.5,33.2 L159.4,36.01 L163.3,38.82 L167.2,41.66 L171.1,44.47 L175.0,47.28 L178.9,50.09 L182.8,52.9 L186.7,55.74 L190.6,58.55 L194.5,61.36 L198.4,64.17 L202.3,66.98 L206.2,69.82 L210.1,72.63 L214.0,75.44 L217.9,78.25 L221.8,81.06 L225.7,83.9 L229.6,86.71 L233.5,89.52 L237.4,92.33 L241.3,95.14 L245.2,97.98 L249.1,100.79 L253.0,103.6 L256.9,100.79 L260.8,97.98 L264.7,95.14 L268.6,92.33 L272.5,89.52 L276.4,86.71 L280.3,83.9 L284.2,81.06 L288.1,78.25 L292.0,75.44 L295.9,72.63 L299.8,69.82 L303.7,66.98 L307.6,64.28 L311.5,61.82 L315.4,59.55 L319.3,57.48 L323.2,55.56 L327.1,53.75 L331.0,52.15 L334.9,50.66 L338.8,49.34 L342.7,48.2 L346.6,47.17 L350.5,46.28 L354.4,45.54 L358.3,44.86 L362.2,44.33 L366.1,43.87 L370.0,43.51 L373.9,43.23 L377.8,42.91 L381.7,42.62 L385.6,42.37 L389.5,42.09 L393.4,41.84 L397.3,41.59 L401.2,41.34 L405.1,41.13 L409.0,40.88 L412.9,40.67 L416.8,40.45 L420.7,40.28 L424.6,40.06 L428.5,39.85 L432.4,39.67 L436.3,39.49 L440.2,39.32 L444.1,39.14 L448.0,39.0 L451.9,38.82 L455.8,38.68 L459.7,38.53 L463.6,38.39 L467.5,38.25 L471.4,38.11 L475.3,37.96 L479.2,37.82 L483.1,37.72 L487.0,37.61 L490.9,37.47 L494.8,37.36 L498.7,37.25 L502.6,37.15 L506.5,37.04 L510.4,36.93 L514.3,36.83 L518.2,36.76 L522.1,36.65 L526.0,36.54 L529.9,36.47 L533.8,36.36 L537.7,36.15 L541.6,35.94 L545.5,35.62 L549.4,36.01 L553.3,38.82 L557.2,41.66 L561.1,44.47 L565.0,47.28 L568.9,50.09 L572.8,52.9 L576.7,55.74 L580.6,58.55 L584.5,61.36 L588.4,64.17 L592.3,66.98 L596.2,69.82 L600.1,72.63 L604.0,75.44 L607.9,78.25 L611.8,81.06 L615.7,83.9 L619.6,86.71 L623.5,89.52 L627.4,92.33 L631.3,95.14 L635.2,97.98 L639.1,100.79 L643.0,103.6 L646.9,100.79 L650.8,97.98 L654.7,95.14 L658.6,92.33 L662.5,89.52 L666.4,86.71 L670.3,83.9 L674.2,81.13 L678.1,78.64 L682.0,76.44 L685.9,74.44 L689.8,72.6 L693.7,70.89 L697.6,69.32 L701.5,67.83 L705.4,66.48 L709.3,65.16 L713.2,63.96 L717.1,62.82 L721.0,61.75 L724.9,60.72 L728.8,59.76 L732.7,58.84 L736.6,57.95 L740.5,57.13 L744.4,56.35 L748.3,55.56 L752.2,54.85 L756.1,54.14 L760.0,53.5 L763.9,52.86 L767.8,52.26 L771.7,51.65 L775.6,51.08 L779.5,50.55 L783.4,50.05 L787.3,49.56 L791.2,49.06 L795.1,48.6 L799.0,48.13 L802.9,47.71 L806.8,47.32 L810.7,46.92 L814.6,46.53 L818.5,46.14 L822.4,45.79 L826.3,45.47 L830.2,45.11 L834.1,44.79"/><path class="ln opt" d="M58.0,20.4 L61.9,20.76 L65.8,21.08 L69.7,21.4 L73.6,21.72 L77.5,22.04 L81.4,22.36 L85.3,22.64 L89.2,22.92 L93.1,23.21 L97.0,23.49 L100.9,23.78 L104.8,24.03 L108.7,24.31 L112.6,24.56 L116.5,24.81 L120.4,25.06 L124.3,25.27 L128.2,25.52 L132.1,25.73 L136.0,25.95 L139.9,26.2 L143.8,26.37 L147.7,27.58 L151.6,30.39 L155.5,33.2 L159.4,36.01 L163.3,38.82 L167.2,41.66 L171.1,44.47 L175.0,47.28 L178.9,50.09 L182.8,52.9 L186.7,55.74 L190.6,58.55 L194.5,61.36 L198.4,64.17 L202.3,66.98 L206.2,69.82 L210.1,72.63 L214.0,75.44 L217.9,78.25 L221.8,81.06 L225.7,83.9 L229.6,86.71 L233.5,89.52 L237.4,92.33 L241.3,95.14 L245.2,97.98 L249.1,100.79 L253.0,103.6 L256.9,100.79 L260.8,97.98 L264.7,95.14 L268.6,92.33 L272.5,89.52 L276.4,86.71 L280.3,83.9 L284.2,81.13 L288.1,78.25 L292.0,75.72 L295.9,72.67 L299.8,70.04 L303.7,67.48 L307.6,64.74 L311.5,62.32 L315.4,60.04 L319.3,57.91 L323.2,55.96 L327.1,54.14 L331.0,52.44 L334.9,50.87 L338.8,49.41 L342.7,48.06 L346.6,46.78 L350.5,45.61 L354.4,44.54 L358.3,43.55 L362.2,42.62 L366.1,41.73 L370.0,40.95 L373.9,40.2 L377.8,39.49 L381.7,38.85 L385.6,38.36 L389.5,38.11 L393.4,38.04 L397.3,37.93 L401.2,37.82 L405.1,37.72 L409.0,37.64 L412.9,37.54 L416.8,37.47 L420.7,37.4 L424.6,37.29 L428.5,37.22 L432.4,37.15 L436.3,37.08 L440.2,37.0 L444.1,36.93 L448.0,36.86 L451.9,36.79 L455.8,36.72 L459.7,36.68 L463.6,36.61 L467.5,36.54 L471.4,36.51 L475.3,36.44 L479.2,36.4 L483.1,36.33 L487.0,36.29 L490.9,36.22 L494.8,36.19 L498.7,36.15 L502.6,36.08 L506.5,36.04 L510.4,36.01 L514.3,35.97 L518.2,35.94 L522.1,35.87 L526.0,35.83 L529.9,35.8 L533.8,35.76 L537.7,35.72 L541.6,35.69 L545.5,35.65 L549.4,36.01 L553.3,38.82 L557.2,41.66 L561.1,44.47 L565.0,47.28 L568.9,50.09 L572.8,52.9 L576.7,55.74 L580.6,58.55 L584.5,61.36 L588.4,64.17 L592.3,66.98 L596.2,69.82 L600.1,72.63 L604.0,75.44 L607.9,78.25 L611.8,81.06 L615.7,83.9 L619.6,86.71 L623.5,89.52 L627.4,92.33 L631.3,95.14 L635.2,97.98 L639.1,100.79 L643.0,103.6 L646.9,100.79 L650.8,97.98 L654.7,95.14 L658.6,92.33 L662.5,89.52 L666.4,86.71 L670.3,83.9 L674.2,81.13 L678.1,78.25 L682.0,75.72 L685.9,72.67 L689.8,70.04 L693.7,67.48 L697.6,64.74 L701.5,62.32 L705.4,60.04 L709.3,57.91 L713.2,55.96 L717.1,54.14 L721.0,52.44 L724.9,50.87 L728.8,49.41 L732.7,48.06 L736.6,46.78 L740.5,45.61 L744.4,44.54 L748.3,43.55 L752.2,42.62 L756.1,41.73 L760.0,40.95 L763.9,40.35 L767.8,40.17 L771.7,40.03 L775.6,39.85 L779.5,39.71 L783.4,39.56 L787.3,39.42 L791.2,39.28 L795.1,39.14 L799.0,39.0 L802.9,38.85 L806.8,38.75 L810.7,38.64 L814.6,38.5 L818.5,38.39 L822.4,38.28 L826.3,38.18 L830.2,38.07 L834.1,37.96"/><path class="ar drv" d="M58.0,249.0 L61.9,249.0 L65.8,249.0 L69.7,249.0 L73.6,249.0 L77.5,249.0 L81.4,249.0 L85.3,249.0 L89.2,249.0 L93.1,249.0 L97.0,249.0 L100.9,249.0 L104.8,249.0 L108.7,249.0 L112.6,249.0 L116.5,249.0 L120.4,249.0 L124.3,249.0 L128.2,249.0 L132.1,249.0 L136.0,249.0 L139.9,245.4 L143.8,238.8 L147.7,232.23 L151.6,225.63 L155.5,219.03 L159.4,212.43 L163.3,205.83 L167.2,199.23 L171.1,192.66 L175.0,187.25 L178.9,183.3 L182.8,180.06 L186.7,180.06 L190.6,180.06 L194.5,180.06 L198.4,180.06 L202.3,180.06 L206.2,180.06 L210.1,180.06 L214.0,180.06 L217.9,180.06 L221.8,180.06 L225.7,180.06 L229.6,180.06 L233.5,180.06 L237.4,180.06 L241.3,180.06 L245.2,180.06 L249.1,180.06 L253.0,180.06 L256.9,180.06 L260.8,180.06 L264.7,180.06 L268.6,180.06 L272.5,180.06 L276.4,180.06 L280.3,180.06 L284.2,180.06 L288.1,180.06 L292.0,180.06 L295.9,180.06 L299.8,180.06 L303.7,180.06 L307.6,180.06 L311.5,180.06 L315.4,180.06 L319.3,180.06 L323.2,180.06 L327.1,183.3 L331.0,187.25 L334.9,192.66 L338.8,199.23 L342.7,205.83 L346.6,212.43 L350.5,219.03 L354.4,225.63 L358.3,232.23 L362.2,238.8 L366.1,245.4 L370.0,249.0 L373.9,249.0 L377.8,249.0 L381.7,249.0 L385.6,249.0 L389.5,249.0 L393.4,249.0 L397.3,249.0 L401.2,249.0 L405.1,249.0 L409.0,249.0 L412.9,249.0 L416.8,249.0 L420.7,249.0 L424.6,249.0 L428.5,249.0 L432.4,249.0 L436.3,249.0 L440.2,249.0 L444.1,249.0 L448.0,249.0 L451.9,249.0 L455.8,249.0 L459.7,249.0 L463.6,249.0 L467.5,249.0 L471.4,249.0 L475.3,249.0 L479.2,249.0 L483.1,249.0 L487.0,249.0 L490.9,249.0 L494.8,249.0 L498.7,249.0 L502.6,249.0 L506.5,249.0 L510.4,249.0 L514.3,249.0 L518.2,249.0 L522.1,249.0 L526.0,249.0 L529.9,245.4 L533.8,238.8 L537.7,232.23 L541.6,225.63 L545.5,219.03 L549.4,212.43 L553.3,205.83 L557.2,199.23 L561.1,192.66 L565.0,187.25 L568.9,183.3 L572.8,180.06 L576.7,180.06 L580.6,180.06 L584.5,180.06 L588.4,180.06 L592.3,180.06 L596.2,180.06 L600.1,252.0 L604.0,252.0 L607.9,252.0 L611.8,252.0 L615.7,252.0 L619.6,252.0 L623.5,252.0 L627.4,252.0 L631.3,252.0 L635.2,252.0 L639.1,252.0 L643.0,252.0 L646.9,252.0 L650.8,252.0 L654.7,252.0 L658.6,252.0 L662.5,252.0 L666.4,252.0 L670.3,252.0 L674.2,252.0 L678.1,252.0 L682.0,252.0 L685.9,252.0 L689.8,252.0 L693.7,252.0 L697.6,252.0 L701.5,252.0 L705.4,252.0 L709.3,252.0 L713.2,252.0 L717.1,252.0 L721.0,252.0 L724.9,252.0 L728.8,252.0 L732.7,252.0 L736.6,252.0 L740.5,252.0 L744.4,252.0 L748.3,252.0 L752.2,252.0 L756.1,252.0 L760.0,252.0 L763.9,252.0 L767.8,252.0 L771.7,252.0 L775.6,252.0 L779.5,252.0 L783.4,252.0 L787.3,252.0 L791.2,252.0 L795.1,252.0 L799.0,252.0 L802.9,252.0 L806.8,252.0 L810.7,252.0 L814.6,252.0 L818.5,252.0 L822.4,252.0 L826.3,252.0 L830.2,252.0 L834.1,252.0 L834.1,252 L58.0,252 Z"/><path class="ar opt" d="M58.0,252.0 L61.9,252.0 L65.8,252.0 L69.7,252.0 L73.6,252.0 L77.5,252.0 L81.4,252.0 L85.3,252.0 L89.2,252.0 L93.1,252.0 L97.0,252.0 L100.9,252.0 L104.8,252.0 L108.7,252.0 L112.6,252.0 L116.5,252.0 L120.4,252.0 L124.3,252.0 L128.2,252.0 L132.1,252.0 L136.0,252.0 L139.9,252.0 L143.8,252.0 L147.7,252.0 L151.6,252.0 L155.5,252.0 L159.4,252.0 L163.3,252.0 L167.2,252.0 L171.1,252.0 L175.0,252.0 L178.9,252.0 L182.8,252.0 L186.7,252.0 L190.6,252.0 L194.5,252.0 L198.4,252.0 L202.3,252.0 L206.2,252.0 L210.1,252.0 L214.0,252.0 L217.9,252.0 L221.8,252.0 L225.7,252.0 L229.6,252.0 L233.5,252.0 L237.4,252.0 L241.3,252.0 L245.2,252.0 L249.1,252.0 L253.0,252.0 L256.9,252.0 L260.8,252.0 L264.7,252.0 L268.6,252.0 L272.5,252.0 L276.4,252.0 L280.3,252.0 L284.2,238.17 L288.1,238.45 L292.0,206.98 L295.9,210.87 L299.8,203.86 L303.7,180.06 L307.6,186.28 L311.5,180.06 L315.4,180.06 L319.3,180.06 L323.2,180.06 L327.1,180.06 L331.0,180.06 L334.9,182.21 L338.8,184.27 L342.7,186.18 L346.6,187.93 L350.5,189.92 L354.4,192.47 L358.3,194.81 L362.2,196.99 L366.1,199.01 L370.0,200.88 L373.9,202.63 L377.8,204.27 L381.7,216.64 L385.6,240.0 L389.5,252.0 L393.4,252.0 L397.3,252.0 L401.2,252.0 L405.1,252.0 L409.0,252.0 L412.9,252.0 L416.8,252.0 L420.7,252.0 L424.6,252.0 L428.5,252.0 L432.4,252.0 L436.3,252.0 L440.2,252.0 L444.1,252.0 L448.0,252.0 L451.9,252.0 L455.8,252.0 L459.7,252.0 L463.6,252.0 L467.5,252.0 L471.4,252.0 L475.3,252.0 L479.2,252.0 L483.1,252.0 L487.0,252.0 L490.9,252.0 L494.8,252.0 L498.7,252.0 L502.6,252.0 L506.5,252.0 L510.4,252.0 L514.3,252.0 L518.2,252.0 L522.1,252.0 L526.0,252.0 L529.9,252.0 L533.8,252.0 L537.7,252.0 L541.6,252.0 L545.5,252.0 L549.4,252.0 L553.3,252.0 L557.2,252.0 L561.1,252.0 L565.0,252.0 L568.9,252.0 L572.8,252.0 L576.7,252.0 L580.6,252.0 L584.5,252.0 L588.4,252.0 L592.3,252.0 L596.2,252.0 L600.1,252.0 L604.0,252.0 L607.9,252.0 L611.8,252.0 L615.7,252.0 L619.6,252.0 L623.5,252.0 L627.4,252.0 L631.3,252.0 L635.2,252.0 L639.1,252.0 L643.0,252.0 L646.9,252.0 L650.8,252.0 L654.7,252.0 L658.6,252.0 L662.5,252.0 L666.4,252.0 L670.3,252.0 L674.2,238.17 L678.1,238.45 L682.0,206.98 L685.9,210.87 L689.8,203.86 L693.7,180.06 L697.6,186.28 L701.5,180.06 L705.4,180.06 L709.3,180.06 L713.2,180.06 L717.1,180.06 L721.0,180.06 L724.9,182.21 L728.8,184.27 L732.7,186.18 L736.6,187.93 L740.5,189.92 L744.4,192.47 L748.3,194.81 L752.2,196.99 L756.1,199.01 L760.0,213.95 L763.9,252.0 L767.8,252.0 L771.7,252.0 L775.6,252.0 L779.5,252.0 L783.4,252.0 L787.3,252.0 L791.2,252.0 L795.1,252.0 L799.0,252.0 L802.9,252.0 L806.8,252.0 L810.7,252.0 L814.6,252.0 L818.5,252.0 L822.4,252.0 L826.3,252.0 L830.2,252.0 L834.1,252.0 L834.1,252 L58.0,252 Z"/><line class="ax" x1="58" y1="252" x2="838" y2="252"/><line class="tick" x1="58.0" y1="252" x2="58.0" y2="256"/><text class="tl" x="58.0" y="267" text-anchor="middle">0</text><line class="tick" x1="253.0" y1="252" x2="253.0" y2="256"/><text class="tl" x="253.0" y="267" text-anchor="middle">500</text><line class="tick" x1="448.0" y1="252" x2="448.0" y2="256"/><text class="tl" x="448.0" y="267" text-anchor="middle">1000</text><line class="tick" x1="643.0" y1="252" x2="643.0" y2="256"/><text class="tl" x="643.0" y="267" text-anchor="middle">1500</text><line class="tick" x1="838.0" y1="252" x2="838.0" y2="256"/><text class="tl" x="838.0" y="267" text-anchor="middle">2000</text><text class="al" x="838" y="282" text-anchor="end">m</text><text class="pl" x="58" y="10">speed</text><text class="pl" x="58" y="174">MGU-K deployment</text></svg></div>
+  <figcaption><b>Figure 5 — the same energy, spent differently</b>
+  The battery-dump lap (dashed) is fractionally quicker down the first straight and pays for it everywhere else: nothing left for either corner exit, and a second sector run on the engine alone. The optimal plan holds its energy for the two exits, where Figure 3 showed a joule is worth eight times more. Net <strong>0.649 s</strong> on a 31-second lap, from allocation alone.
+  <span class="key"><i class="k-opt">optimal</i><i class="k-drv">battery dump</i></span></figcaption>
+</figure>
+
+<div class="col">
+<h2><span class="num">06</span><span>Does any of it work?</span></h2>
+<p>The honest test of a model that recommends counterfactuals is whether it can predict a lap it was not fitted to. So the synthetic session drives three laps one way and three laps another, and the model — fitted on all of them — is asked to reproduce each.</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Check</th><th>Result</th><th>Why it matters</th></tr></thead>
+  <tbody>
+    <tr><td>Model fidelity</td><td class="n">0.14 %</td><td>Simulated vs actual lap time, across both deployment patterns</td></tr>
+    <tr><td>Parameter recovery</td><td class="n">1.4 % / 1.1 %</td><td>Fitted efficiency and drag against known truth</td></tr>
+    <tr><td>Adjoint vs brute force</td><td class="n">4 decimals</td><td>The marginal-value calculation is correct, not just plausible</td></tr>
+    <tr><td>Predicted vs realised</td><td class="n">0.62 s → 0.74 s</td><td>Per lap; the tool slightly under-promised</td></tr>
+    <tr><td>Battery dump costs</td><td class="n">+0.95 s</td><td>Against optimal use of identical energy</td></tr>
+    <tr><td>Optimum fed back in</td><td class="n">0.02 s</td><td>No false alarms on a lap that is already right</td></tr>
+  </tbody>
+</table>
+</div>
+<p>The structural checks matter as much as the numbers: lap time is monotone in the energy budget, λ falls as energy becomes less scarce, charge never leaves its bounds, and qualifying mode beats energy-neutral mode. Any of those failing would mean the solver was not solving the stated problem.</p>
+<div class="note">All of this is on synthetic telemetry where the truth is known by construction. <strong>It has not yet met the real game.</strong> The packet layouts are verified byte-exact against the 2026 spec and the parser self-checks, but the first live session is where anything I could not simulate will show up — record one with <code>--record</code> and the fidelity number will tell you honestly.</div>
+</div>
+
+<div class="col">
+<h2><span class="num">07</span><span>Symbols</span></h2>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Symbol</th><th>Units</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="sym">λ</td><td class="n">s/J</td><td>Co-state — the shadow price of stored energy on this lap</td></tr>
+    <tr><td class="sym">g(s)</td><td class="n">s/J</td><td>Marginal seconds bought per joule deployed at point s</td></tr>
+    <tr><td class="sym">φ_i</td><td class="n">s per m/s</td><td>Adjoint — sensitivity of the remaining lap to speed at point i</td></tr>
+    <tr><td class="sym">u(s)</td><td class="n">W</td><td>Deployment power, the control variable</td></tr>
+    <tr><td class="sym">E(s)</td><td class="n">J</td><td>State of charge, the state variable</td></tr>
+    <tr><td class="sym">h(s)</td><td class="n">J</td><td>Energy harvested per bin, measured from telemetry</td></tr>
+    <tr><td class="sym">v_env(s)</td><td class="n">m/s</td><td>Speed envelope — grip limit where grip binds, free where power binds</td></tr>
+    <tr><td class="sym">a, b, db, c</td><td class="n">—</td><td>Identified efficiency, drag, aero drag delta, rolling losses</td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="col">
+<h2><span class="num">08</span><span>Where it lives</span></h2>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>File</th><th>Contains</th></tr></thead>
+  <tbody>
+    <tr><td class="sym">telemetry.py</td><td>UDP parsing for the 2026 layout, record and replay</td></tr>
+    <tr><td class="sym">track.py</td><td>Distance binning, system identification, envelope, taper, harvest map</td></tr>
+    <tr><td class="sym">optimiser.py</td><td>Forward simulator, co-state DP, bisection, adjoint</td></tr>
+    <tr><td class="sym">analysis.py</td><td>Attribution, detectors, verdict, in-lap cues, session metrics</td></tr>
+    <tr><td class="sym">dashboard.py</td><td>Terminal UI</td></tr>
+    <tr><td class="sym">app.py</td><td>Live, replay and baseline modes</td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="col">
+<h2><span class="num">09</span><span>What I would do next</span></h2>
+<ul>
+  <li><strong>Model the car ahead explicitly.</strong> Traffic currently enters only through the measured harvest and the speed envelope. <code>delta_front</code> is already parsed; using it to predict the braking you are about to be forced into would let the solver plan for traffic rather than react to it.</li>
+  <li><strong>Give the override its own taper.</strong> The 2026 manual override shares the learned deployment curve; it deserves a separate one.</li>
+  <li><strong>Optimise across laps, not within one.</strong> The energy-neutral constraint is a sensible proxy for stint-level planning, but the real problem is a multi-lap one where you deliberately run down the battery to defend a position and rebuild it later.</li>
+  <li><strong>Tyre and fuel state.</strong> The recursive fit tracks these implicitly as drift; making them explicit states would let the model anticipate rather than follow.</li>
+</ul>
+</div>
+
+<hr>
+<footer>
+<p>Built for EA F1 25: 2026 Season Pack. Packet layouts verified against the official 2026 UDP specification. Figures generated from solver output on the test circuit; validation figures from a synthetic session with known ground truth.</p>
+</footer>
+
+</div>
