@@ -5,13 +5,13 @@ the game's UDP telemetry at 60 Hz, fits a physics model of your car from your ow
 laps, works out where the battery should have gone, and after every lap tells you
 the biggest thing ERS cost you, in seconds.
 
+Python 3.10+ and numpy. No other dependencies.
+
 ![Browser dashboard mid-race at Bahrain](docs/dashboard.png)
 
 *Live during lap 6 of a Bahrain race. Real telemetry, replayed.*
 
 ## Running it
-
-Python 3.10+ and numpy. Nothing else.
 
 ```bash
 python3 -m f126ers.app --web          # browser dashboard (recording on)
@@ -23,7 +23,7 @@ python3 -m f126ers.app --baseline 5   # 5 uncoached laps first, then coach
 ```
 
 In game: Settings → Telemetry → **UDP On, Format 2026, Port 20777, Rate 60 Hz,
-Your Telemetry: Public**. The last two settings matter. At 20 Hz the dynamics fit
+Your Telemetry: Public**. The last two settings matter. At 20 Hz the model fit
 loses half its resolution, and anything other than Public strips the other cars
 out of the packets, which kills the tow and gap measurements.
 
@@ -45,8 +45,8 @@ stretch of track.
 
 ![Lap verdict](docs/verdict.png)
 
-A ranked list of fixes, each with the time it is worth and the reason it is worth
-it, so you can pick one to work on rather than being told six things at once.
+A ranked list of fixes, each with the time it is worth and the reason, so you can
+pick one to work on rather than being told six things at once.
 
 ![Ranked tips](docs/tips.png)
 
@@ -85,8 +85,8 @@ every UDP packet exactly as it arrived, so a replay is byte-identical, and a
 
 Nothing has to be noted by hand. Pit stops, laps spent within a second of another
 car, low-deployment laps, override use, assists and safety-car periods are all
-worked out from the packets. `--index` reports what a recording contains and
-which of the model's fits it can feed:
+worked out from the packets. `--index` reports what a recording contains and which
+parts of the model it can calibrate:
 
 ```
 RECORDING  2026-08-07-185828.f1
@@ -105,163 +105,47 @@ LAPS
 
 WHAT THIS RECORDING CAN CALIBRATE
   [yes] pit stop                 lap 8
-         prices a lap spent in the pit lane (PIT_VALUE, currently an estimate)
   [yes] low-deployment laps      lap 3, 10
-         separates drag from motor power (20% spread, 15% needed)
   [ no] clean air                none found
-         the baseline every other lap is measured against
 
 MISSING — worth two minutes next session
   - clean air: the baseline every other lap is measured against
 ```
 
-## Why a race needs different maths
+## What it does under the hood
 
-Almost every ERS guide is written for a qualifying lap: start full, finish empty,
-deploy on the exits. A race lap is a harder problem.
-
-The lap has to be repeatable. Energy you spend now and don't harvest back is
-energy you won't have next lap, so a quick lap that leaves you empty is a loan and
-should be priced like one.
-
-Harvest isn't a constant either. In clean air you brake later and recover less, so
-the energy budget moves lap to lap and the right deployment moves with it. And
-spending sector 1's energy leaves sector 3 dry; where the shortfall bites depends
-on the circuit, not on a rule of thumb.
-
-## How it works
-
-### 1. Fitting the car
-
-The longitudinal model, per unit mass, over distance `s`:
-
-```
-d(v²/2)/ds  =  a·P(s)/v  −  drag(s)·v²  −  c
-drag(s)     =  b + db·aero(s)
-```
-
-Power is measured, not inferred: the 2026 packet format reports `EnginePowerICE`
-and `EnginePowerMGUK` in watts. The unknowns `(a, b, db, c)` come out of a least
-squares fit, with three details that decide whether it works:
-
-- **Integral form.** The game reports speed as a whole number of km/h.
-  Differencing that over a 10 m bin gives an acceleration estimate noisier than
-  the signal itself, so the equation is integrated over roughly 100 m first. Still
-  linear in the unknowns, no longer swamped by quantisation.
-- **Pooled across laps.** A single lap has a single deployment pattern, which
-  leaves power and drag nearly collinear: the fit reproduces that lap and
-  mispredicts every other one. Since the whole job is predicting laps you haven't
-  driven, rows are pooled across laps, where the different deployment patterns
-  supply the excitation that makes the parameters identifiable.
-- **Ridge toward the previous estimate**, in normalised column units, which makes
-  it a recursive estimator. It tracks a car whose fuel load and tyres are changing
-  without lurching on one noisy lap.
-
-`db` picks up the 2026 active-aero drag difference between corner and
-straight-line mode, which is far too large to average over.
-
-### 2. Power limited or grip limited?
-
-For each distance bin the model compares the acceleration achieved against what
-the delivered power should have produced. Where the car fell well short at full
-throttle, grip was the binding constraint, not power.
-
-This is what makes corner-exit advice honest. A car on exit is traction limited,
-already using every newton the tyres will give, and extra deployment there buys
-nothing. Treating "full throttle" as "power limited" would have the optimiser
-promise exit time the tyres cannot deliver.
-
-### 3. The optimiser
-
-```
-minimise    T = Σ ds / v
-over        u(s) ∈ [0, P_max(v)]
-subject to  dE/ds = −u/v + h(s),   0 ≤ E ≤ E_cap,   E(L) ≥ E_target
-```
-
-Solved by Pontryagin / Lagrangian relaxation rather than a 2-D dynamic program
-over (distance, charge). Relaxing the energy budget with a multiplier λ makes the
-problem separable into a 1-D dynamic program over speed alone:
-
-```
-min_u  Σ [ dt + λ·u·dt ]
-```
-
-Bisect λ until the solution spends exactly the available budget and you have the
-constrained optimum, plus λ itself as a first-class object rather than a finite
-difference of a value surface.
-
-λ is the shadow price of energy, in seconds per joule, and it is the centre of the
-whole tool. The optimal policy is bang-bang in the local time-gain-per-joule
-`g(s)`: deploy where `g(s) > λ`, don't where it isn't. Corner exits beating the end
-of a straight is not a rule the tool was taught. It falls out, because `g` is large
-at low speed and collapses to zero above the MGU-K taper knee.
-
-When charge hits a bound mid-lap λ stops being constant and jumps at the contact
-point, so the lap is split there and each segment solved with its own λ. That is
-the standard state-constrained construction, and it is what makes "empty through
-sector 3" a case with an answer rather than an error.
-
-`E_target = E_start` by default, so the plan is repeatable every lap of a stint.
-Qualifying mode is the same solver with `E_target = 0`.
-
-### 4. Attribution
-
-Three quantities, deliberately kept apart:
-
-| | measured by |
-|---|---|
-| Allocation loss (this lap) | simulated actual lap − optimal lap *on the energy you actually spent* |
-| Harvest loss (this lap) | re-solving on the energy your own best braking recovers in those zones |
-| Sustainability cost (next lap) | λ × the charge deficit carried over |
-
-Both laps go through the same simulator with the same speed envelope, so line and
-braking cancel out and what is left is ERS.
-
-Comparing against the same energy you spent is what separates "you put it in the
-wrong place" from "you spent more than the lap can afford". Mix them and they
-cancel, and a battery-dump lap looks fine. Within the allocation loss, λ and `g(s)`
-rank the symptoms and the measured total is shared out across them: the ranking
-comes from the economics, the total comes from the simulator. Pricing a whole
-block of energy at λ would overstate it, since λ is by definition the value of the
-last joule.
-
-Symptoms it detects: wasted deployment, battery depleted, under-deployed, missed
-harvest, override misused, unsustainable.
+- **Real-time telemetry pipeline.** Parses the 2026 UDP packet layout at 60 Hz,
+  merges packet types into one sample stream, records and replays byte-identically.
+- **System identification.** Fits a longitudinal vehicle model (power, drag, active
+  aero, rolling resistance) from your own laps by regularised least squares,
+  pooled across laps and updated recursively as fuel and tyres change.
+- **Optimal control.** Solves optimal deployment as a constrained optimal-control
+  problem via Lagrangian relaxation and dynamic programming, which prices energy
+  in seconds per joule and drives every piece of advice the tool gives.
+- **Attribution.** Splits each lap's ERS loss into where the energy went, how much
+  was harvested, and what the deficit costs next lap, all measured through the
+  same simulator so line and braking cancel out.
+- **Race context.** Traffic, tow, overtake break-even probability, pit-lap
+  weighting and an across-laps energy plan for the stint.
 
 ## Results
 
-`python3 test_optimiser.py` runs a toy circuit with a known answer:
+`python3 test_optimiser.py` runs a toy circuit with a known answer: the optimiser
+deploys 162 kW on corner exits and 0 kW at high speed without being told to, lap
+time is monotone in the energy budget, charge bounds hold, and a battery-dump lap
+is correctly priced at +0.95 s against the optimal use of the same energy.
 
-- the optimiser deploys 162 kW on corner exits and 0 kW at high speed, derived
-  rather than told
-- lap time is monotone in the energy budget, and λ falls as energy loosens
-- charge bounds and the per-lap budget hold, and qualifying mode beats neutral
-- a battery-dump lap costs +0.95 s against the optimal use of the same energy
-- feeding the optimum back in raises no issues, so no false alarms
-
-End to end on a synthetic session where the truth is known:
-
-| metric | result |
-|---|---|
-| model fidelity (simulated vs actual lap time) | 0.13 % |
-| parameter recovery (`a`, `b` vs truth) | within 1.5 % |
+| | synthetic session | real 14-lap Bahrain race |
+|---|---|---|
+| model fidelity (simulated vs actual lap time) | 0.13 % | 2.4 % |
+| parameter recovery vs truth | within 1.5 % | — |
+| laps analysed | all | 13 of 14 |
+| pit stop, traffic, override use | — | all detected without being told |
 
 Fidelity is the number that matters, because it is measured on laps driven with a
-deployment pattern the model was never fitted to.
-
-On a real 14-lap Bahrain race, 554 MB and 548,178 packets at 59 Hz:
-
-| metric | result |
-|---|---|
-| model fidelity on a real car | 2.4 % |
-| laps analysed | 13 of 14 |
-| pit stop, following laps, override use | all detected without being told |
-
-Real data found five bugs the synthetic fixture could not produce. The worst was
-silent: `sessionType` is 15 in the 2026 format, not 10, so every race-only feature
-(the across-laps plan, the race tips, the overtake economics) had been switching
-itself off in exactly the situation it was written for.
+deployment pattern the model was never fitted to. The real session is 554 MB and
+548,178 packets at 59 Hz, and finding bugs in it that the synthetic fixture could
+not produce is most of why the numbers above are trustworthy.
 
 ## Layout
 
@@ -269,7 +153,7 @@ itself off in exactly the situation it was written for.
 |---|---|
 | `telemetry.py` | UDP parsing (2026 layout), record/replay |
 | `track.py` | distance binning, system identification, speed envelope, taper, harvest map |
-| `optimiser.py` | forward simulator, co-state DP, λ, marginal time-gain |
+| `optimiser.py` | forward simulator, co-state DP, energy price, marginal time-gain |
 | `analysis.py` | attribution, issue detectors, verdict, in-lap cues, session metrics |
 | `stint.py` | energy curve, across-laps DP, pit-lap weighting |
 | `traffic.py` | following deficit, attack economics, break-even probability |
@@ -278,8 +162,9 @@ itself off in exactly the situation it was written for.
 | `dashboard.py`, `web.py` | terminal and browser UIs |
 | `app.py` | live / replay / index / baseline modes |
 
-Self-checks live next to the code they check: `python3 f126ers/telemetry.py`
-verifies the packet layouts, `python3 f126ers/track.py` checks parameter recovery.
+Tests sit at the top level (`test_optimiser.py`, `test_stint.py`, `test_traffic.py`,
+`test_places.py`, `test_situations.py`); `python3 f126ers/telemetry.py` and
+`python3 f126ers/track.py` self-check packet layouts and parameter recovery.
 
 ## Limits
 
